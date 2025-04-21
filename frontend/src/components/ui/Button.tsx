@@ -5,6 +5,7 @@ interface ButtonProps {
   text: string;
   startIcon?: ReactElement;
   endIcon?: ReactElement;
+  onClick? : React.MouseEventHandler<HTMLButtonElement>
 }
 
 const defaultClasses =
@@ -16,10 +17,10 @@ const variantClasses = {
 };
 
 export function Button(props: ButtonProps) {
-  const { variant, text, startIcon, endIcon } = props;
+  const { variant, text, startIcon, endIcon, onClick } = props;
 
   return (
-    <button className={`${defaultClasses} ${variantClasses[variant]}`}>
+    <button className={`${defaultClasses} ${variantClasses[variant]}`} onClick={onClick}>
       {startIcon}
       {text}
       {endIcon}

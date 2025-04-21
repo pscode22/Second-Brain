@@ -3,9 +3,11 @@ import Card from './components/ui/Card';
 import Header from './components/ui/Header';
 import Sidebar from './components/ui/Sidebar';
 import { cn } from './utils/cn';
+import ContentCreateModel from './components/ContentCreateModal';
 
 function App() {
   const [isMinSidebar, setIsMinSidebar] = useState<boolean>(false);
+  const [isModalOpen, setModelOpen] = useState<boolean>(false)
   const toggleSidebar = () => setIsMinSidebar(!isMinSidebar);
 
   return (
@@ -17,7 +19,7 @@ function App() {
           isMinSidebar ? 'ml-16' : 'ml-64',
         )}
       >
-        <Header />
+        <Header setModalOpen={setModelOpen} />
         <main className="mt-7 flex gap-3">
           <Card
             type="twitter"
@@ -30,9 +32,10 @@ function App() {
             link={'https://www.youtube.com/watch?v=ldAV_bixqaw'}
           />
         </main>
+        <ContentCreateModel isModalOpen={isModalOpen} setModalOpen={setModelOpen} />
       </div>
     </>
-  );
+  )
 }
 
 export default App;

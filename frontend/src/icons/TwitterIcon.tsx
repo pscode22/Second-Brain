@@ -10,7 +10,7 @@ export default function TwitterIcon({ style }: { style?: React.CSSProperties }) 
       style={{ fill: '#ffffff', ...style }}
     >
       <g
-        fill="#99a1af"
+        fill={style?.color ? style.color : '#99a1af'}
         fill-rule="nonzero"
         stroke="none"
         stroke-width="1"

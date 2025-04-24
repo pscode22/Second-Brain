@@ -35,8 +35,8 @@ export default function Sidebar({ isMinSidebar, toggleSidebar }: SidebarProps) {
           </div>
           <h3
             className={cn(
-              'm-0 text-start text-xl font-bold whitespace-nowrap text-[#202b3c] transition-discrete duration-200',
-              isMinSidebar && 'hidden scale-0',
+              'm-0 text-start text-xl font-bold whitespace-nowrap text-[#202b3c] duration-200',
+              isMinSidebar && 'scale-0',
             )}
           >
             Second Brain

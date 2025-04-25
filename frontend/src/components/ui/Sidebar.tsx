@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { FaYoutube } from 'react-icons/fa';
-import BrainIcon from '../../icons/BrainIcon';
 import SideArrowIcon from '../../icons/SideArrowIcon';
 import { HiHashtag } from 'react-icons/hi';
 import { cn } from '../../utils/cn';
 import SidebarItem from './SidebarItem';
 import { ActiveSidebarItem } from '../../interfaces/constants';
 import { FaSquareXTwitter } from 'react-icons/fa6';
+import { LuBrain } from 'react-icons/lu';
 
 interface SidebarProps {
   isMinSidebar: boolean;
@@ -23,15 +23,9 @@ export default function Sidebar({ isMinSidebar, toggleSidebar }: SidebarProps) {
       )}
     >
       <div className="relative h-full pt-5">
-        <div
-          className={cn(
-            'mb-10 inline-flex w-full px-3',
-            isMinSidebar && 'justify-center',
-            !isMinSidebar && 'items-center gap-3',
-          )}
-        >
+        <div className={cn('mb-10 inline-flex w-full px-3', !isMinSidebar && 'items-center gap-3')}>
           <div>
-            <BrainIcon style={{ width: '2rem', height: '2rem' }} />
+            <LuBrain size={'2rem'} color="#463ad6" className="hover:cursor-pointer" />
           </div>
           <h3
             className={cn(

@@ -17,7 +17,7 @@ export default function SidebarItem({ icon, title, iconOnly, onClick, isActive }
         'mb-4 inline-flex w-full cursor-pointer items-center rounded p-3 whitespace-nowrap transition-discrete duration-50',
         iconOnly && 'justify-center',
         !iconOnly && 'gap-3',
-        isActive && 'bg-[#d9ddee] text-[#463ad6]',
+        isActive && 'bg-[#d9ddee] text-purple-600',
       )}
     >
       <div>{icon}</div>

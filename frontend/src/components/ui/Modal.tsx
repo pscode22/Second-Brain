@@ -29,26 +29,37 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
 
   // Basic focus trap
   useEffect(() => {
-    const focusable = panelRef.current?.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    if (!isOpen || !panelRef.current) return;
+    const modalEl = panelRef.current;
+    const focusable = modalEl.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
-    const first = focusable?.[0];
-    const last = focusable?.[focusable.length - 1];
-    function handleTab(e: KeyboardEvent) {
-      if (e.key !== 'Tab' || !first || !last) return;
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
+    const firstEl = focusable[0];
+    const lastEl = focusable[focusable.length - 1];
+  
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Tab') {
+        if (e.shiftKey && document.activeElement === firstEl) {
+          e.preventDefault();
+          lastEl.focus();
+        } else if (!e.shiftKey && document.activeElement === lastEl) {
+          e.preventDefault();
+          firstEl.focus();
+        }
+      } else if (e.key === 'Escape') {
+        onClose();
       }
     }
-    document.addEventListener('keydown', handleTab);
+  
+    modalEl.addEventListener('keydown', handleKey);
     // Autofocus first element
-    first?.focus();
-    return () => document.removeEventListener('keydown', handleTab);
-  }, []);
+    firstEl?.focus();
+  
+    return () => {
+      modalEl.removeEventListener('keydown', handleKey);
+    };
+  }, [isOpen, onClose]);
+  
 
   // Prevent rendering when closed
   if (!isOpen) {

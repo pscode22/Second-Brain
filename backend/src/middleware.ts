@@ -1,19 +1,24 @@
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { JWT_PASSWORD } from './config';
+import { JWT_ACCESS_SECRET } from './config';
 
-export const userMiddleware = (
+export function userMiddleware(
   req: Request,
   res: Response,
   next: NextFunction
-) => {
-  const headers = req.headers['authorization'] as string;
-  const decoded = jwt.verify(headers, JWT_PASSWORD);
-  if (decoded) {
-    // @ts-ignore
-    req.userId = decoded.userId;
-    next();
-  } else {
-    res.status(403).json({ message: 'you are not logged in' });
+) {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith('Bearer ')) {
+    res.status(401).json({ message: 'No token' });
+    return;
   }
-};
+
+  const token = auth.split(' ')[1];
+  try {
+    const payload = jwt.verify(token, JWT_ACCESS_SECRET) as { userId: string };
+    req.userId = payload.userId;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: 'Token invalid or expired' });
+  }
+}

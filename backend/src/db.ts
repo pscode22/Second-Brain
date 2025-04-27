@@ -24,5 +24,15 @@ const linkSchema = new Schema({
   },
 });
 
+const refreshTokenSchema = new Schema({
+  token:      { type: String, required: true, unique: true },
+  userId:     { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  createdAt:  { type: Number, required: true }, // timestamp ms
+  lastUsedAt: { type: Number, required: true }, // timestamp ms
+  expiresAt:  { type: Date, required: true },
+});
+
+
+export const RefreshTokenModel = model('RefreshToken', refreshTokenSchema);
 export const ContentModel = model('Content', contentSchema);
 export const LinkModel = model('Link', linkSchema);

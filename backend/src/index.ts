@@ -1,12 +1,14 @@
 import express, { json } from 'express';
 import mongoose from 'mongoose';
-import { ContentModel, LinkModel, UserModel } from './db';
+import { ContentModel, LinkModel, RefreshTokenModel, UserModel } from './db';
 import { signInValidation, signUpValidation } from './validations';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { JWT_PASSWORD } from './config';
+import jwt, { JwtPayload } from 'jsonwebtoken';
+import { JWT_REFRESH_SECRET, JWT_ACCESS_SECRET } from './config';
 import { userMiddleware } from './middleware';
 import { randomString } from './utils';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
 
 declare global {
   namespace Express {
@@ -18,8 +20,15 @@ declare global {
 
 const app = express();
 app.use(json());
+app.use(cookieParser());
+app.use(cors());
 
 const { log } = console;
+
+// Token lifetimes
+const ACCESS_TOKEN_LIFETIME = '15m'; // Access tokens live 15 minutes
+const IDLE_LIFETIME_S = 15 * 24 * 60 * 60; // Idle expiry: 15 days in seconds
+const ABSOLUTE_LIFETIME_S = 30 * 24 * 60 * 60; // Absolute expiry: 30 days in seconds
 
 app.post('/api/v1/signup', async (req, res) => {
   // zod validation
@@ -53,46 +62,187 @@ app.post('/api/v1/signup', async (req, res) => {
 });
 
 app.post('/api/v1/signin', async (req, res) => {
-  // zod validation
-  const zodValidation = signInValidation.safeParse(req.body);
-
-  if (!zodValidation.success) {
-    res.json({ message: 'Invalid format.', error: zodValidation.error });
-  }
-
-  const { userName, password } = req.body as {
-    userName: string;
-    password: string;
-  };
-
   try {
-    const user = await UserModel.findOne({ userName });
-
-    if (!user) {
-      res.json({ message: 'User Not found.' });
-    } else {
-      const isPasswordCorrect = await bcrypt.compare(
-        password,
-        user.password as string
-      );
-
-      if (!isPasswordCorrect) {
-        res.status(403).json({ message: 'Invalid credentials' });
-      } else {
-        const generateToken = jwt.sign(
-          { userId: user.id as string },
-          JWT_PASSWORD
-        );
-        res
-          .status(200)
-          .json({ message: 'you are signed in.', token: generateToken });
-      }
+    // Validate input
+    const parse = signInValidation.safeParse(req.body);
+    if (!parse.success) {
+      res
+        .status(400)
+        .json({ message: 'Invalid input format.', error: parse.error });
+      return;
     }
-  } catch (error) {
-    res.json({
-      message: 'Something went wrong, try again.',
+
+    const { userName, password } = parse.data;
+
+    // Find user
+    const user = await UserModel.findOne({ userName });
+    if (!user) {
+      res.status(403).json({ message: 'Invalid credentials.' });
+      return;
+    }
+
+    // Verify password
+    const match = await bcrypt.compare(password, user.password!);
+    if (!match) {
+      res.status(403).json({ message: 'Invalid credentials.' });
+      return;
+    }
+
+    // Issue access token (short-lived)
+    const accessToken = jwt.sign({ userId: user._id }, JWT_ACCESS_SECRET, {
+      expiresIn: ACCESS_TOKEN_LIFETIME,
     });
+
+    // Generate new JTI using mongoose ObjectId
+    const jti = new mongoose.Types.ObjectId().toHexString();
+
+    // Issue refresh token (long-lived) embedding jti
+    const refreshToken = jwt.sign({ userId: user._id }, JWT_REFRESH_SECRET, {
+      expiresIn: `${ABSOLUTE_LIFETIME_S}s`, // Absolute TTL in seconds
+      jwtid: jti, // embed jti for one-time use
+    });
+
+    // Persist refresh token record (store jti)
+    const now = new Date();
+    await RefreshTokenModel.create({
+      token: jti,
+      userId: user._id,
+      createdAt: now,
+      lastUsedAt: now, // initial idle timestamp
+      expiresAt: new Date(now.getTime() + ABSOLUTE_LIFETIME_S * 1000), // maxAge in ms
+    });
+
+    // Send HttpOnly secure cookie with refresh token
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      // secure: process.env.NODE_ENV === 'production',
+      secure: true,
+      sameSite: 'strict',
+      path: '/api/v1/refresh',
+      maxAge: IDLE_LIFETIME_S * 1000, // cookie maxAge in ms
+    });
+
+    // Respond with access token
+    res.status(200).json({ message: 'Signed in', accessToken });
+  } catch (error) {
+    console.error('Signin error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
+});
+
+app.post('/api/v1/refresh', async (req, res) => {
+  try {
+    const oldToken = req.cookies.refreshToken;
+    if (!oldToken) {
+      res.status(401).json({ message: 'No refresh token provided' });
+      return;
+    }
+
+    // Verify the old refresh token
+    let payload: jwt.JwtPayload;
+    try {
+      payload = jwt.verify(
+        oldToken,
+        JWT_REFRESH_SECRET
+      ) as jwt.JwtPayload;
+    } catch {
+      res.status(403).json({ message: 'Invalid refresh token' });
+      return;
+    }
+
+    const now = new Date();
+
+    // Find the existing refresh token record
+    const existingToken = await RefreshTokenModel.findOne({
+      token: payload.jti,
+      userId: payload.userId,
+    });
+    if (!existingToken) {
+      res.status(403).json({ message: 'Refresh token not found' });
+      return;
+    }
+
+    // Check for absolute expiration
+    if (existingToken.expiresAt.getTime() <= now.getTime()) {
+      res.status(403).json({ message: 'Refresh token has expired' });
+      return;
+    }
+
+    const newJti = new mongoose.Types.ObjectId().toHexString();
+
+    // Atomically find and update the refresh token
+    const updatedToken = await RefreshTokenModel.findOneAndUpdate(
+      {
+        token: payload.jti,
+        userId: payload.userId,
+        expiresAt: { $gt: now },
+        lastUsedAt: { $gt: new Date(now.getTime() - IDLE_LIFETIME_S * 1000) },
+      },
+      {
+        $set: {
+          token: newJti,
+          lastUsedAt: now,
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedToken) {
+      res
+        .status(403)
+        .json({ message: 'Refresh token expired or already used' });
+      return;
+    }
+
+    // Calculate remaining time until absolute expiration
+    const remainingTimeMs = updatedToken.expiresAt.getTime() - now.getTime();
+    const remainingTimeSec = Math.floor(remainingTimeMs / 1000);
+
+    // Issue new refresh token with the same expiration as the original
+    const newRefreshToken = jwt.sign(
+      { userId: payload.userId },
+      JWT_REFRESH_SECRET,
+      {
+        expiresIn: remainingTimeSec,
+        jwtid: newJti,
+      }
+    );
+
+    // Issue new access token
+    const accessToken = jwt.sign(
+      { userId: payload.userId },
+      JWT_ACCESS_SECRET,
+      { expiresIn: ACCESS_TOKEN_LIFETIME }
+    );
+
+    // Set the new refresh token in the cookie
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/api/v1/refresh',
+      maxAge: IDLE_LIFETIME_S * 1000,
+    });
+
+    res.status(200).json({ accessToken });
+    return;
+  } catch (error) {
+    console.error('Refresh error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+    return;
+  }
+});
+
+// logout
+app.post('/api/v1/logout', async (req, res) => {
+  const { refreshToken } = req.cookies;
+  if (refreshToken) await RefreshTokenModel.deleteOne({ token: refreshToken });
+  res.clearCookie('refreshToken', {
+    path: '/api/v1/refresh',
+    httpOnly: true,
+    secure: true,
+  });
+  res.status(200).json({ message: 'Logged out' });
 });
 
 app.post('/api/v1/content', userMiddleware, async (req, res) => {
@@ -177,12 +327,10 @@ app.get('/api/v1/brain/:shareLink', async (req, res) => {
         });
 
         if (userContents) {
-          res
-            .status(200)
-            .json({
-              user: { _id: user._id, userName: user.userName },
-              content: userContents,
-            });
+          res.status(200).json({
+            user: { _id: user._id, userName: user.userName },
+            content: userContents,
+          });
         } else {
           res.status(204).json({ message: 'No Contents found' });
         }

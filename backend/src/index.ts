@@ -18,10 +18,25 @@ declare global {
   }
 }
 
+const allowedOrigins = ['http://localhost:5173'];
+
 const app = express();
 app.use(json());
 app.use(cookieParser());
-app.use(cors());
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow requests with no origin (e.g. mobile apps, curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true, // ← required for Set-Cookie
+  })
+);
 
 const { log } = console;
 
@@ -35,7 +50,9 @@ app.post('/api/v1/signup', async (req, res) => {
   const zodValidation = signUpValidation.safeParse(req.body);
 
   if (!zodValidation.success) {
-    res.json({ message: 'Invalid format.', error: zodValidation.error });
+    res
+      .status(400)
+      .json({ message: 'Invalid format.', error: zodValidation.error });
   }
 
   const { userName, password } = req.body;
@@ -93,6 +110,24 @@ app.post('/api/v1/signin', async (req, res) => {
       expiresIn: ACCESS_TOKEN_LIFETIME,
     });
 
+    const tokenExist = await RefreshTokenModel.findOne({ userId: user.id });
+
+    if (tokenExist) {
+      // Send HttpOnly secure cookie with refresh token
+      res.cookie('refreshToken', tokenExist.token, {
+        httpOnly: true,
+        // secure: process.env.NODE_ENV === 'production',
+        secure: false,
+        sameSite: 'none',
+        path: '/api/v1/refresh',
+        maxAge: IDLE_LIFETIME_S * 1000, // cookie maxAge in ms
+      });
+
+      // Respond with access token
+      res.status(200).json({ message: 'Signed in', accessToken });
+      return;
+    }
+
     // Generate new JTI using mongoose ObjectId
     const jti = new mongoose.Types.ObjectId().toHexString();
 
@@ -116,8 +151,8 @@ app.post('/api/v1/signin', async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       // secure: process.env.NODE_ENV === 'production',
-      secure: true,
-      sameSite: 'strict',
+      secure: false,
+      sameSite: 'none',
       path: '/api/v1/refresh',
       maxAge: IDLE_LIFETIME_S * 1000, // cookie maxAge in ms
     });
@@ -141,10 +176,7 @@ app.post('/api/v1/refresh', async (req, res) => {
     // Verify the old refresh token
     let payload: jwt.JwtPayload;
     try {
-      payload = jwt.verify(
-        oldToken,
-        JWT_REFRESH_SECRET
-      ) as jwt.JwtPayload;
+      payload = jwt.verify(oldToken, JWT_REFRESH_SECRET) as jwt.JwtPayload;
     } catch {
       res.status(403).json({ message: 'Invalid refresh token' });
       return;
@@ -218,8 +250,8 @@ app.post('/api/v1/refresh', async (req, res) => {
     // Set the new refresh token in the cookie
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      // secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
       path: '/api/v1/refresh',
       maxAge: IDLE_LIFETIME_S * 1000,
     });

@@ -1,11 +1,17 @@
 import axios from 'axios';
 
-axios.defaults.baseURL = '/api/v1';
+axios.defaults.baseURL = 'http://localhost:4000/api/v1';
 
 interface SignInProps {
   userName: string;
   password: string;
 }
+
+// SignUp
+export const signup = async (userCredentials: SignInProps) => {
+  const response = await axios.post('/signup', userCredentials);
+  return response.data;
+};
 
 // login
 export const signin = async (userCredentials: SignInProps) => {
@@ -13,7 +19,4 @@ export const signin = async (userCredentials: SignInProps) => {
   return response.data;
 };
 
-
-export const refreshToken = async () => {
-    
-}
+export const refreshToken = async () => {};

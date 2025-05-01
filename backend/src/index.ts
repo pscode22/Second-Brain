@@ -113,6 +113,12 @@ app.post('/api/v1/signin', async (req, res) => {
     const tokenExist = await RefreshTokenModel.findOne({ userId: user.id });
 
     if (tokenExist) {
+      const now = new Date();
+
+      // Calculate remaining time until absolute expiration
+      const remainingTimeMs = tokenExist.expiresAt.getTime() - now.getTime();
+      const remainingTimeSec = Math.floor(remainingTimeMs / 1000);
+
       // Send HttpOnly secure cookie with refresh token
       res.cookie('refreshToken', tokenExist.token, {
         httpOnly: true,
@@ -120,7 +126,7 @@ app.post('/api/v1/signin', async (req, res) => {
         secure: false,
         sameSite: 'none',
         path: '/api/v1/refresh',
-        maxAge: IDLE_LIFETIME_S * 1000, // cookie maxAge in ms
+        maxAge: remainingTimeSec, // cookie maxAge in ms
       });
 
       // Respond with access token
@@ -253,7 +259,7 @@ app.post('/api/v1/refresh', async (req, res) => {
       // secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
       path: '/api/v1/refresh',
-      maxAge: IDLE_LIFETIME_S * 1000,
+      maxAge: remainingTimeSec,
     });
 
     res.status(200).json({ accessToken });

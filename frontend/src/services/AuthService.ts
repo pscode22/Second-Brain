@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-axios.defaults.baseURL = 'http://localhost:4000/api/v1';
+import {axiosApiInstance as axios} from './api';
 
 interface SignInProps {
   userName: string;
@@ -19,4 +17,3 @@ export const signin = async (userCredentials: SignInProps) => {
   return response.data;
 };
 
-export const refreshToken = async () => {};

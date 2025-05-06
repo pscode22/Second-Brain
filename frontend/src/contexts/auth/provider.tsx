@@ -1,96 +1,99 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import { AuthContext } from './context';
-import { registerAccessTokenContextSetter, setAccessTokenService } from '../../services/config';
+import { GenericResponse, LoginOkRes } from '../../interfaces/generic';
+import { ClearAllConfigs, ReadTokenConfig, WriteTokenConfig } from '../../services/storage';
+import { validateToken } from '../../utils/tokenValidation';
+import { refresh } from '../../services/AuthService';
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-const { log } = console;
+const { error } = console;
 
 // Provider component that wraps your app and makes auth object available to all child components
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Validate token and update authentication state
-  const validateToken = useCallback((token: string | null) => {
-    if (!token) {
-      setIsAuthenticated(false);
-      return false;
-    }
-
-    try {
-      // Example validation for JWT
-      const tokenParts = token.split('.');
-      if (tokenParts.length !== 3) {
-        setIsAuthenticated(false);
-        return false;
-      }
-
-      const payload = JSON.parse(atob(tokenParts[1]));
-      const isValid = payload.exp > Date.now() / 1000;
-
-      setIsAuthenticated(isValid);
-      return isValid;
-    } catch (error) {
-      log(error);
-      setIsAuthenticated(false);
-      return false;
-    }
-  }, []);
+  const [isTokenValid, setIsTokenValid] = useState<boolean>(false);
 
   // Function to handle login with validation
-  const login = useCallback(
-    (token: string) => {
-      setAccessToken(token);
-      validateToken(token);
-      setAccessTokenService(token);
-    },
-    [validateToken],
-  ); // Include validateToken in dependencies
-
-  // Function to check token validity
-  const isTokenValid = useCallback(() => {
-    return validateToken(accessToken);
-  }, [accessToken, validateToken]); // Include validateToken in dependencies
-
-  // Function to handle logout
-  const logout = useCallback(() => {
-    setAccessToken(null);
-    setIsAuthenticated(false); // Also update authentication state
+  const loginValidation = useCallback(async (res: LoginOkRes): Promise<GenericResponse> => {
+    try {
+      const isValidToken = validateToken(res.accessToken);
+      if (isValidToken) {
+        const { accessToken, refreshToken } = res;
+        await WriteTokenConfig({ accessToken, refreshToken, isValidated: isValidToken });
+        setIsTokenValid(isValidToken);
+        return { message: 'Token is Valid', ok: true };
+      } else {
+        setIsTokenValid(false);
+        return { message: 'Token is not valid', ok: false };
+      }
+    } catch (error) {
+      return {
+        message: 'Something went wrong',
+        ok: false,
+        error,
+      };
+    }
   }, []);
 
-  // Effect to validate token on mount and when token changes
-  useEffect(() => {
-    if (accessToken) {
-      setAccessTokenService(accessToken);
-      validateToken(accessToken);
-
-      // // Optional: Set up periodic validation
-      // const validationInterval = setInterval(() => {
-      //   validateToken(accessToken);
-      // }, 60000); // Check every minute
-
-      // return () => clearInterval(validationInterval);
+  const logout = useCallback(async (): Promise<GenericResponse> => {
+    try {
+      await ClearAllConfigs();
+      setIsTokenValid(false);
+      window.location.href = '/signin';
+      return { message: 'Logout Successful', ok: true };
+    } catch (error) {
+      return {
+        message: 'Cannot logout.',
+        ok: false,
+        error,
+      };
     }
-  }, [accessToken, validateToken]);
+  }, []);
 
-  useEffect(() => {
-    registerAccessTokenContextSetter(setAccessToken);
-  }, [setAccessToken]);
+  useLayoutEffect(() => {
+    try {
+      const setTokenValidation = async () => {
+        const token = await ReadTokenConfig();
+        if (token) {
+          const tokenValidation = validateToken(token.accessToken);
+
+          if (tokenValidation) {
+            setIsTokenValid(true);
+          }
+
+          if (!tokenValidation && token.refreshToken) {
+            const newToken = await refresh(token.refreshToken);
+
+            if (newToken.accessToken && newToken.refreshToken) {
+              const { accessToken, refreshToken } = newToken;
+              const tokenValidation = validateToken(accessToken);
+
+              if (!tokenValidation) {
+                logout();
+              }
+              await WriteTokenConfig({ accessToken, refreshToken, isValidated: tokenValidation });
+              setIsTokenValid(tokenValidation);
+            }
+          }
+        }
+      };
+      setTokenValidation();
+    } catch (err) {
+      error(err);
+      logout();
+    }
+  }, [logout]);
 
   const value = useMemo(
     () => ({
-      accessToken,
-      setAccessToken,
-      isAuthenticated,
       isTokenValid,
-      login,
+      loginValidation,
       logout,
     }),
-    [accessToken, isAuthenticated, isTokenValid, login, logout],
-  ); // Include all function dependencies
+    [isTokenValid, loginValidation, logout],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

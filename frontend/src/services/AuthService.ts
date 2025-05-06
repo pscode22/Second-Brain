@@ -1,4 +1,4 @@
-import {axiosApiInstance as axios} from './api';
+import { axiosApiInstance as axios } from './api';
 
 interface SignInProps {
   userName: string;
@@ -13,7 +13,14 @@ export const signup = async (userCredentials: SignInProps) => {
 
 // login
 export const signin = async (userCredentials: SignInProps) => {
-  const response = await axios.post('/signin', userCredentials, { withCredentials: true });
+  const response = await axios.post('/signin', userCredentials);
   return response.data;
 };
 
+// refresh
+export const refresh = async (currRefreshToken: string) => {
+  const response = await axios.post<{ accessToken: string, refreshToken: string }>('/refresh', {
+    currRefreshToken,
+  });
+  return response.data;
+};

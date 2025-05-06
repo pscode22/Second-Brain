@@ -1,10 +1,19 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import InputField from '../components/ui/InputField';
-import { FormEvent, useRef } from 'react';
+import { FormEvent, useEffect, useRef } from 'react';
 import { signin } from '../services/AuthService';
+import { useAuth } from '../hooks/useAuth';
+import { GenericResponse, LoginOkRes } from '../interfaces/generic';
+
+const { log } = console;
+
 export default function SignIn() {
   const userNameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const { isTokenValid } = useAuth();
+
+  const { loginValidation } = useAuth();
+  const navigate = useNavigate();
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -14,17 +23,29 @@ export default function SignIn() {
     if (userName && password) {
       console.log({ userName, password });
       try {
-        const res = await signin({ userName, password });
-        console.log(res);
+        const res: LoginOkRes = await signin({ userName, password });
+
+        if (res && res.ok) {
+          const valid = (await loginValidation(res)) as GenericResponse;
+
+          if (valid.ok) navigate('/dashboard');
+          if (!valid.ok) {
+            throw new Error(valid.message);
+          }
+        }
       } catch (error) {
-        const err = error as { message: string };
-        console.log(err.message)
-        // throw new Error(err.message);
+        log(error);
       }
     }
   };
 
-  console.log(userNameRef, passwordRef);
+  // navigate user to dashboard if already validated.
+  useEffect(() => {
+    if (isTokenValid) {
+      navigate('/dashboard');
+    }
+  }, [isTokenValid, navigate]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
@@ -36,6 +57,7 @@ export default function SignIn() {
             nameAttr="username"
             placeholder="Your username"
             ref={userNameRef}
+            required
           />
           <InputField
             labelName="Password"
@@ -43,6 +65,7 @@ export default function SignIn() {
             nameAttr="password"
             placeholder="Your password"
             ref={passwordRef}
+            required
           />
           <button
             type="submit"

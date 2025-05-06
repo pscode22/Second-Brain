@@ -18,25 +18,29 @@ declare global {
   }
 }
 
-const allowedOrigins = ['http://localhost:5173'];
-
 const app = express();
 app.use(json());
 app.use(cookieParser());
+// const corsOptions = {
+//   // @ts-ignore
+//   origin: function (origin, callback) {
+//     // Allow requests with no origin (like mobile apps or curl requests)
+//     if (!origin) return callback(null, true);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // allow requests with no origin (e.g. mobile apps, curl)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true, // ← required for Set-Cookie
-  })
-);
+//     // List all allowed origins
+//     const allowedOrigins = ['http://localhost:5173', 'http://localhost:4000'];
+//     if (allowedOrigins.indexOf(origin) !== -1) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   credentials: true, // This is CRITICAL for cookies
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+// };
+
+app.use(cors());
 
 const { log } = console;
 
@@ -113,24 +117,12 @@ app.post('/api/v1/signin', async (req, res) => {
     const tokenExist = await RefreshTokenModel.findOne({ userId: user.id });
 
     if (tokenExist) {
-      const now = new Date();
-
-      // Calculate remaining time until absolute expiration
-      const remainingTimeMs = tokenExist.expiresAt.getTime() - now.getTime();
-      const remainingTimeSec = Math.floor(remainingTimeMs / 1000);
-
-      // Send HttpOnly secure cookie with refresh token
-      res.cookie('refreshToken', tokenExist.token, {
-        httpOnly: true,
-        // secure: process.env.NODE_ENV === 'production',
-        secure: false,
-        sameSite: 'none',
-        path: '/api/v1/refresh',
-        maxAge: remainingTimeSec, // cookie maxAge in ms
+      res.status(200).json({
+        message: 'Signed in',
+        accessToken,
+        refreshToken: tokenExist.token,
+        ok: true,
       });
-
-      // Respond with access token
-      res.status(200).json({ message: 'Signed in', accessToken });
       return;
     }
 
@@ -153,18 +145,10 @@ app.post('/api/v1/signin', async (req, res) => {
       expiresAt: new Date(now.getTime() + ABSOLUTE_LIFETIME_S * 1000), // maxAge in ms
     });
 
-    // Send HttpOnly secure cookie with refresh token
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      // secure: process.env.NODE_ENV === 'production',
-      secure: false,
-      sameSite: 'none',
-      path: '/api/v1/refresh',
-      maxAge: IDLE_LIFETIME_S * 1000, // cookie maxAge in ms
-    });
-
     // Respond with access token
-    res.status(200).json({ message: 'Signed in', accessToken });
+    res
+      .status(200)
+      .json({ message: 'Signed in', accessToken, refreshToken, ok: true });
   } catch (error) {
     console.error('Signin error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -173,7 +157,8 @@ app.post('/api/v1/signin', async (req, res) => {
 
 app.post('/api/v1/refresh', async (req, res) => {
   try {
-    const oldToken = req.cookies.refreshToken;
+    const oldToken = req.body.refreshToken;
+    console.log(oldToken);
     if (!oldToken) {
       res.status(401).json({ message: 'No refresh token provided' });
       return;
@@ -253,16 +238,7 @@ app.post('/api/v1/refresh', async (req, res) => {
       { expiresIn: ACCESS_TOKEN_LIFETIME }
     );
 
-    // Set the new refresh token in the cookie
-    res.cookie('refreshToken', newRefreshToken, {
-      httpOnly: true,
-      // secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
-      path: '/api/v1/refresh',
-      maxAge: remainingTimeSec,
-    });
-
-    res.status(200).json({ accessToken });
+    res.status(200).json({ accessToken, refreshToken: newRefreshToken });
     return;
   } catch (error) {
     console.error('Refresh error:', error);
@@ -273,13 +249,26 @@ app.post('/api/v1/refresh', async (req, res) => {
 
 // logout
 app.post('/api/v1/logout', async (req, res) => {
-  const { refreshToken } = req.cookies;
-  if (refreshToken) await RefreshTokenModel.deleteOne({ token: refreshToken });
-  res.clearCookie('refreshToken', {
-    path: '/api/v1/refresh',
-    httpOnly: true,
-    secure: true,
-  });
+  const { refreshToken } = req.body;
+
+  // Verify the old refresh token
+  let payload: jwt.JwtPayload;
+  try {
+    payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as jwt.JwtPayload;
+  } catch {
+    res.status(403).json({ message: 'Invalid refresh token' });
+    return;
+  }
+
+  try {
+    await RefreshTokenModel.deleteOne({
+      token: payload.jti,
+      userId: payload.userId,
+    });
+  } catch (error) {
+    res.status(403).json({ message: 'token or user not found' });
+    return;
+  }
   res.status(200).json({ message: 'Logged out' });
 });
 

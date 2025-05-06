@@ -1,5 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { BASE_URL, getAccessToken, setAccessTokenService } from './config';
+import { BASE_URL } from './config';
+import { validateToken } from '../utils/tokenValidation';
+import { ReadTokenConfig, WriteTokenConfig } from './storage';
 
 const allowedUrls = ['/signup', '/signin', '/refresh'];
 
@@ -14,7 +16,11 @@ export const axiosApiInstance = axios.create({
 // On Outgoing Req
 axiosApiInstance.interceptors.request.use((req: InternalAxiosRequestConfig) => {
   const urlStr = (req.url || '').split('?')[0];
-  const accessToken = getAccessToken();
+
+  const accessToken = async () => {
+    const forageRes = await ReadTokenConfig();
+    return forageRes?.accessToken || '';
+  };
 
   // Attach Access Token to private-req Auth
   if (!allowedUrls.includes(urlStr)) {
@@ -31,46 +37,56 @@ axiosApiInstance.interceptors.request.use((req: InternalAxiosRequestConfig) => {
 });
 
 // On Incoming Res
-// Incoming responses
 axiosApiInstance.interceptors.response.use(
-    (res) => res,
-    async (error: AxiosError) => {
-      const { config, response } = error;
-      const originalRequest = config!;
-  
-      // If the refresh endpoint itself gives 401/403, user must re-login
-      if (
-        (response?.status === 401 || response?.status === 403) &&
-        originalRequest.url === '/refresh'
-      ) {
-        window.location.href = '/signIn';
-        return Promise.reject(error);
-      }
-  
-      if (response?.status === 401) {
-        try {
-          const refreshResponse = await axiosApiInstance.post<{ accessToken: string }>('/refresh');
-          const newToken = refreshResponse.data.accessToken;
-  
-          // Update in-memory and context
-          setAccessTokenService(newToken);
-  
-          // Replay the original request with new token
-          originalRequest.headers = originalRequest.headers || {};
-          originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-          return axiosApiInstance.request(originalRequest);
-          
-        } catch (refreshError) {
-          // If refresh failed (network error, server error, invalid cookie, etc.)
-          // you must redirect to login or show a proper message
-          console.error('Refresh token failed', refreshError);
-          window.location.href = '/signIn';
-          return Promise.reject(refreshError);
-        }
-      }
-  
-      // Otherwise, just pass the error through
+  (res) => res,
+  async (error: AxiosError) => {
+    const { config, response } = error;
+    const originalRequest = config!;
+
+    // If the refresh endpoint itself gives 401/403, user must re-login
+    if (
+      (response?.status === 401 || response?.status === 403) &&
+      originalRequest.url === '/refresh'
+    ) {
+      window.location.href = '/signIn';
       return Promise.reject(error);
     }
-  );
-  
+
+    // 401 (unAuthorized)
+    if (response?.status === 401) {
+      try {
+        const refreshResponse = await axiosApiInstance.post<{
+          accessToken: string;
+          refreshToken: string;
+        }>('/refresh');
+
+        const newToken = refreshResponse.data.accessToken;
+
+        if (!validateToken(newToken)) {
+          throw new Error('Not a valid Token');
+        }
+
+        await WriteTokenConfig({
+          accessToken: newToken,
+          refreshToken: refreshResponse.data.refreshToken,
+          isValidated: true,
+        });
+
+        // Replay the original request with new token
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+        return axiosApiInstance.request(originalRequest);
+      } catch (refreshError) {
+        const { error } = console;
+        // If refresh failed (network error, server error, invalid cookie, etc.)
+        // you must redirect to login or show a proper message
+        error('Refresh token failed', refreshError);
+        window.location.href = '/signIn';
+        return Promise.reject(refreshError);
+      }
+    }
+
+    // Otherwise, just pass the error through
+    return Promise.reject(error);
+  },
+);

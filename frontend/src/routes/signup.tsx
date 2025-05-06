@@ -14,7 +14,6 @@ export default function SignUp() {
     const password = passwordRef.current?.value;
 
     if (userName && password) {
-      console.log({ userName, password });
       try {
         const res = await signup({ userName, password });
         console.log(res);
@@ -37,6 +36,7 @@ export default function SignUp() {
             nameAttr="username"
             placeholder="Your username"
             ref={userNameRef}
+            required
           />
           <InputField
             labelName="Password"
@@ -44,6 +44,7 @@ export default function SignUp() {
             nameAttr="password"
             placeholder="Your password"
             ref={passwordRef}
+            required
           />
           <button
             type="submit"

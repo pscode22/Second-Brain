@@ -4,11 +4,15 @@ import Header from '../components/ui/Header';
 import Sidebar from '../components/ui/Sidebar';
 import { cn } from '../utils/cn';
 import ContentCreateModel from '../components/ContentCreateModal';
+// import { useAuth } from '../hooks/useAuth';
 
 export default function Dashboard() {
   const [isMinSidebar, setIsMinSidebar] = useState<boolean>(false);
   const [isModalOpen, setModelOpen] = useState<boolean>(false);
   const toggleSidebar = () => setIsMinSidebar(!isMinSidebar);
+
+  // const auth = useAuth();
+  // console.log(auth.)
   return (
     <>
       <Sidebar isMinSidebar={isMinSidebar} toggleSidebar={toggleSidebar} />

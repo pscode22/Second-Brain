@@ -1,9 +1,26 @@
+import { AxiosError } from 'axios';
+
+export interface GenericResponse {
+  message: string;
+  ok: boolean;
+  error?: Error | AxiosError | unknown | undefined;
+}
+
 export interface AuthContextType {
-    accessToken: string | null;
-    setAccessToken: (token: string | null) => void;
-    isAuthenticated: boolean;
-    isTokenValid: () => boolean; // Add this function to the interface
-    login: (token: string) => void;
-    logout: () => void;
-  }
-  
+  isTokenValid: boolean;
+  loginValidation: (token: LoginOkRes) => Promise<void> | Promise<GenericResponse>;
+  logout: () => void;
+}
+
+export interface LoginOkRes {
+  message: string;
+  accessToken: string;
+  refreshToken: string;
+  ok: boolean;
+}
+
+export interface TokenConfig {
+  accessToken: string;
+  refreshToken: string;
+  isValidated: boolean;
+}

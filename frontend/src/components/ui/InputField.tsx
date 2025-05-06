@@ -5,6 +5,7 @@ interface InputFieldProps {
   type: HTMLInputTypeAttribute;
   nameAttr: string;
   placeholder: string;
+  required ?: boolean;
   ref: RefObject<HTMLInputElement | null>;
 }
 
@@ -13,6 +14,7 @@ export default function InputField({
   type,
   nameAttr,
   placeholder,
+  required,
   ref,
 }: InputFieldProps) {
   return (
@@ -27,6 +29,7 @@ export default function InputField({
         onChange={(e) => {
           return ref.current ? (ref.current.value = e.target.value) : null;
         }}
+        required={required}
       />
     </div>
   );

@@ -122,6 +122,7 @@ app.post('/api/v1/signin', async (req, res) => {
         accessToken,
         refreshToken: tokenExist.token,
         ok: true,
+        userName : user.userName
       });
       return;
     }
@@ -146,9 +147,13 @@ app.post('/api/v1/signin', async (req, res) => {
     });
 
     // Respond with access token
-    res
-      .status(200)
-      .json({ message: 'Signed in', accessToken, refreshToken, ok: true });
+    res.status(200).json({
+      message: 'Signed in',
+      accessToken,
+      refreshToken,
+      ok: true,
+      userName: user.userName,
+    });
   } catch (error) {
     console.error('Signin error:', error);
     res.status(500).json({ message: 'Internal server error' });

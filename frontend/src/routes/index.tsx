@@ -1,11 +1,13 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes, useLocation, } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { FiLoader } from 'react-icons/fi';
+import { useAuth } from '../hooks/useAuth';
 
 const RouteSignIn = lazy(() => import('../routes/signin'));
 const RouteSignUp = lazy(() => import('../routes/signup'));
 const RouteDashboard = lazy(() => import('../routes/dashboard'));
-const RouteLookUo = lazy(() => import('../routes/lookup'));
+const RouteProfile = lazy(() => import('../routes/profile'));
+const RoutePageNotFound = lazy(() => import('../routes/notfound'));
 
 const Loader: React.FC = () => (
   <div className="flex h-screen items-center justify-center bg-gray-100">
@@ -13,22 +15,34 @@ const Loader: React.FC = () => (
   </div>
 );
 
-export default function RoutesOutlet() {
+function RequireAuth() {
   const location = useLocation();
+  const { isTokenValid } = useAuth();
 
-  if (location.pathname === '/') {
-    return <Navigate to="/signin" replace />;
+  console.log(isTokenValid)
+
+  if (isTokenValid === false) {
+    return <Navigate to="/signin" replace state={{ from: location }} />;
   }
 
+  return <Outlet />;
+}
+
+export default function RoutesOutlet() {
   return (
     <Suspense fallback={<Loader />}>
       <Routes>
+        {/* '/' -> '/signin' */}
+        <Route index element={<Navigate to="/signin" replace />} />
         <Route path="/signin" element={<RouteSignIn />} />
         <Route path="/signup" element={<RouteSignUp />} />
-        <Route path="/look" element={<RouteLookUo />} />
-        {/* <Route element={<RequireAuth />}> */}
+        {/* Protected routes */}
+        <Route element={<RequireAuth />}>
           <Route path="/dashboard" element={<RouteDashboard />} />
-        {/* </Route> */}
+          <Route path="/profile" element={<RouteProfile />} />
+        </Route>
+        {/* Catch-all */}
+        + <Route path="*" element={<RoutePageNotFound />} />
       </Routes>
     </Suspense>
   );

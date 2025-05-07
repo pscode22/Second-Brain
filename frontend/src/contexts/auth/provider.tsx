@@ -1,7 +1,12 @@
 import { ReactNode, useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import { AuthContext } from './context';
 import { GenericResponse, LoginOkRes } from '../../interfaces/generic';
-import { ClearAllConfigs, ReadTokenConfig, WriteTokenConfig } from '../../services/storage';
+import {
+  ClearAllConfigs,
+  ReadTokenConfig,
+  WriteTokenConfig,
+  WriteUserConfig,
+} from '../../services/storage';
 import { validateToken } from '../../utils/tokenValidation';
 import { refresh } from '../../services/AuthService';
 
@@ -13,15 +18,16 @@ const { error } = console;
 
 // Provider component that wraps your app and makes auth object available to all child components
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [isTokenValid, setIsTokenValid] = useState<boolean>(false);
+  const [isTokenValid, setIsTokenValid] = useState<boolean | null>(null);
 
   // Function to handle login with validation
   const loginValidation = useCallback(async (res: LoginOkRes): Promise<GenericResponse> => {
     try {
       const isValidToken = validateToken(res.accessToken);
       if (isValidToken) {
-        const { accessToken, refreshToken } = res;
+        const { accessToken, refreshToken, userName } = res;
         await WriteTokenConfig({ accessToken, refreshToken, isValidated: isValidToken });
+        await WriteUserConfig({ userName });
         setIsTokenValid(isValidToken);
         return { message: 'Token is Valid', ok: true };
       } else {
@@ -51,6 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
     }
   }, []);
+  console.log(isTokenValid);
 
   useLayoutEffect(() => {
     try {
@@ -59,8 +66,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (token) {
           const tokenValidation = validateToken(token.accessToken);
 
+          console.log(tokenValidation, token.refreshToken);
+
           if (tokenValidation) {
             setIsTokenValid(true);
+            return;
           }
 
           if (!tokenValidation && token.refreshToken) {
@@ -71,12 +81,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               const tokenValidation = validateToken(accessToken);
 
               if (!tokenValidation) {
-                logout();
+                setIsTokenValid(false);
+                return;
               }
               await WriteTokenConfig({ accessToken, refreshToken, isValidated: tokenValidation });
               setIsTokenValid(tokenValidation);
+            } else {
+              setIsTokenValid(false);
+              return;
             }
+          } else {
+            setIsTokenValid(false);
+            return;
           }
+        } else {
+          setIsTokenValid(false);
+          return;
         }
       };
       setTokenValidation();

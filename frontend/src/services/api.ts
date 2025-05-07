@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { BASE_URL } from './config';
 import { validateToken } from '../utils/tokenValidation';
-import { ReadTokenConfig, WriteTokenConfig } from './storage';
+import { ClearAllConfigs, ReadTokenConfig, WriteTokenConfig } from './storage';
 
 const allowedUrls = ['/signup', '/signin', '/refresh'];
 
@@ -48,7 +48,9 @@ axiosApiInstance.interceptors.response.use(
       (response?.status === 401 || response?.status === 403) &&
       originalRequest.url === '/refresh'
     ) {
+      
       window.location.href = '/signIn';
+      await ClearAllConfigs()
       return Promise.reject(error);
     }
 
@@ -81,6 +83,7 @@ axiosApiInstance.interceptors.response.use(
         // If refresh failed (network error, server error, invalid cookie, etc.)
         // you must redirect to login or show a proper message
         error('Refresh token failed', refreshError);
+        await ClearAllConfigs()
         window.location.href = '/signIn';
         return Promise.reject(refreshError);
       }

@@ -20,7 +20,7 @@ export const signin = async (userCredentials: SignInProps) => {
 // refresh
 export const refresh = async (currRefreshToken: string) => {
   const response = await axios.post<{ accessToken: string, refreshToken: string }>('/refresh', {
-    currRefreshToken,
+    refreshToken : currRefreshToken,
   });
   return response.data;
 };

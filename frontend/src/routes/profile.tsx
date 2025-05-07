@@ -1,9 +1,9 @@
 import React from 'react'
 
-export default function lookup() {
+export default function Profile() {
   return (
     <div>
-      
+      Profile
     </div>
   )
 }

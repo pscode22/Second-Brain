@@ -7,7 +7,7 @@ export interface GenericResponse {
 }
 
 export interface AuthContextType {
-  isTokenValid: boolean;
+  isTokenValid: boolean | null;
   loginValidation: (token: LoginOkRes) => Promise<void> | Promise<GenericResponse>;
   logout: () => void;
 }
@@ -16,6 +16,7 @@ export interface LoginOkRes {
   message: string;
   accessToken: string;
   refreshToken: string;
+  userName : string;
   ok: boolean;
 }
 

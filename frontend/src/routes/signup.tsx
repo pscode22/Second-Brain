@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import InputField from '../components/ui/InputField';
 import { FormEvent, useRef } from 'react';
-import { signup } from '../services/AuthService';
+import { signup } from '../services/api/auth.api';
 import { AxiosError } from 'axios';
 
 export default function SignUp() {

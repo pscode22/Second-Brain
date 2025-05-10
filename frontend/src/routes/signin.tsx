@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import InputField from '../components/ui/InputField';
 import { FormEvent, useEffect, useRef } from 'react';
-import { signin } from '../services/AuthService';
+import { signin } from '../services/api/auth.api';
 import { useAuth } from '../hooks/useAuth';
 import { GenericResponse, LoginOkRes } from '../interfaces/generic';
 

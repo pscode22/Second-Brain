@@ -3,8 +3,7 @@ import Card from '../components/ui/Card';
 import Header from '../components/ui/Header';
 import Sidebar from '../components/ui/Sidebar';
 import { cn } from '../utils/cn';
-import ContentCreateModel from '../components/ContentCreateModal';
-import { useAuth } from '../hooks/useAuth';
+import AddContentModal from '../features/dashboard/AddContentModal';
 // import { useAuth } from '../hooks/useAuth';
 
 export default function Dashboard() {
@@ -12,8 +11,6 @@ export default function Dashboard() {
   const [isModalOpen, setModelOpen] = useState<boolean>(false);
   const toggleSidebar = () => setIsMinSidebar(!isMinSidebar);
 
-  const auth = useAuth();
-  console.log(auth.isTokenValid)
   return (
     <>
       <Sidebar isMinSidebar={isMinSidebar} toggleSidebar={toggleSidebar} />
@@ -36,7 +33,7 @@ export default function Dashboard() {
             link={'https://www.youtube.com/watch?v=ldAV_bixqaw'}
           />
         </main>
-        <ContentCreateModel isModalOpen={isModalOpen} setModalOpen={setModelOpen} />
+        <AddContentModal isModalOpen={isModalOpen} setModalOpen={setModelOpen} />
       </div>
     </>
   );

@@ -1,4 +1,4 @@
-import { axiosApiInstance as axios } from './api';
+import { axiosApiInstance as axios } from '../api-interceptors';
 
 interface SignInProps {
   userName: string;

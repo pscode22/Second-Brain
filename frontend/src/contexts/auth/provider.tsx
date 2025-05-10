@@ -8,7 +8,7 @@ import {
   WriteUserConfig,
 } from '../../services/storage';
 import { validateToken } from '../../utils/tokenValidation';
-import { refresh } from '../../services/AuthService';
+import { refresh } from '../../services/api/auth.api';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -63,40 +63,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const setTokenValidation = async () => {
         const token = await ReadTokenConfig();
-        if (token) {
-          const tokenValidation = validateToken(token.accessToken);
+        if (!token) {
+          setIsTokenValid(false);
+          return;
+        }
 
-          console.log(tokenValidation, token.refreshToken);
+        const tokenValidation = validateToken(token.accessToken);
 
-          if (tokenValidation) {
-            setIsTokenValid(true);
-            return;
-          }
+        if (tokenValidation) {
+          setIsTokenValid(true);
+          return;
+        }
 
-          if (!tokenValidation && token.refreshToken) {
-            const newToken = await refresh(token.refreshToken);
+        if (!tokenValidation && !token.refreshToken) {
+          setIsTokenValid(false);
+          return;
+        }
 
-            if (newToken.accessToken && newToken.refreshToken) {
-              const { accessToken, refreshToken } = newToken;
-              const tokenValidation = validateToken(accessToken);
+        if (!tokenValidation && token.refreshToken) {
+          const newToken = await refresh(token.refreshToken);
 
-              if (!tokenValidation) {
-                setIsTokenValid(false);
-                return;
-              }
-              await WriteTokenConfig({ accessToken, refreshToken, isValidated: tokenValidation });
-              setIsTokenValid(tokenValidation);
-            } else {
-              setIsTokenValid(false);
-              return;
-            }
-          } else {
+          const { accessToken, refreshToken } = newToken;
+
+          if (!accessToken && !refreshToken) {
             setIsTokenValid(false);
             return;
           }
-        } else {
-          setIsTokenValid(false);
-          return;
+
+          const validation = validateToken(accessToken);
+
+          if (!validation) {
+            setIsTokenValid(false);
+            return;
+          }
+          await WriteTokenConfig({ accessToken, refreshToken, isValidated: validation });
+          setIsTokenValid(validation);
         }
       };
       setTokenValidation();

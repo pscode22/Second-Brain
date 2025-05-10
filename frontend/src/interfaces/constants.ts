@@ -7,3 +7,9 @@ export enum ActiveSidebarItem {
 export enum Localforage {
   TOKEN = 'token',
 }
+
+export enum ContentType {
+  YOUTUBE = 'youtube',
+  TWITTER = 'twitter',
+  NONE = 'none'
+}

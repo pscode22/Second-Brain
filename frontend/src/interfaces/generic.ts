@@ -1,4 +1,5 @@
 import { AxiosError } from 'axios';
+import { ContentType } from './constants';
 
 export interface GenericResponse {
   message: string;
@@ -24,4 +25,10 @@ export interface TokenConfig {
   accessToken: string;
   refreshToken: string;
   isValidated: boolean;
+}
+
+export interface AddContentProps {
+  title : string;
+  link : string;
+  contentType : ContentType
 }

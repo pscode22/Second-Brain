@@ -14,23 +14,21 @@ export const axiosApiInstance = axios.create({
 });
 
 // On Outgoing Req
-axiosApiInstance.interceptors.request.use((req: InternalAxiosRequestConfig) => {
+axiosApiInstance.interceptors.request.use(async (req: InternalAxiosRequestConfig) => {
   const urlStr = (req.url || '').split('?')[0];
 
-  const accessToken = async () => {
-    const forageRes = await ReadTokenConfig();
-    return forageRes?.accessToken || '';
-  };
+  const token =  await ReadTokenConfig();
+  ;
 
   // Attach Access Token to private-req Auth
   if (!allowedUrls.includes(urlStr)) {
-    if (!accessToken) {
+    if (!token || !token.accessToken) {
       window.location.href = '/signin';
       return Promise.reject(new Error('No access token found (req interceptors).'));
     }
 
     req.headers = req.headers || {};
-    req.headers!['Authorization'] = `Bearer ${accessToken}`;
+    req.headers['Authorization'] = `Bearer ${token.accessToken || ''}`;
   }
 
   return req;

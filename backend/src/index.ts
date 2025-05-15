@@ -278,10 +278,9 @@ app.post('/api/v1/logout', async (req, res) => {
 });
 
 app.post('/api/v1/content', userMiddleware, async (req, res) => {
-  const { title, link, tags } = req.body;
-
+  const { title, link, contentType } = req.body;
   try {
-    await ContentModel.create({ title, link, tags: [], userId: req.userId });
+    await ContentModel.create({ title, link, contentType, userId: req.userId });
     res.status(200).json({ message: 'Content created' });
   } catch (error) {
     res.json({

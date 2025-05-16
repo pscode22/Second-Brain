@@ -17,7 +17,7 @@ export interface LoginOkRes {
   message: string;
   accessToken: string;
   refreshToken: string;
-  userName : string;
+  userName: string;
   ok: boolean;
 }
 
@@ -28,7 +28,15 @@ export interface TokenConfig {
 }
 
 export interface AddContentProps {
-  title : string;
-  link : string;
-  contentType : ContentType
+  title: string;
+  link: string;
+  contentType: ContentType;
+}
+
+export interface Content {
+  contentType: ContentType;
+  link: string;
+  title: string;
+  userId: { _id: string; userName: string };
+  _id: string;
 }

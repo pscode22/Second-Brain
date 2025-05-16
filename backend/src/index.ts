@@ -300,6 +300,7 @@ app.get('/api/v1/content', userMiddleware, async (req, res) => {
   } catch (error) {
     res.json({
       message: 'Something went wrong, try again.',
+      error
     });
   }
 });

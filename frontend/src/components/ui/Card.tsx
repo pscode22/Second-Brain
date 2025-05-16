@@ -3,9 +3,10 @@ import DeleteIcon from '../../icons/DeleteIcon';
 import ShareIcon from '../../icons/ShareIcon';
 import TwitterIcon from '../../icons/TwitterIcon';
 import YoutubeIcon from '../../icons/YoutubeIcon';
+import { ContentType } from '../../interfaces/constants';
 
 interface CardProps {
-  type: 'youtube' | 'twitter';
+  type: ContentType;
   title: string;
   link: string;
 }
@@ -35,8 +36,8 @@ export default function Card(props: CardProps) {
       {/* Header */}
       <div className="flex w-full justify-between">
         <div className="flex gap-2 items-center">
-          {type === 'youtube' && <YoutubeIcon style={iconStyle} />}
-          {type === 'twitter' && <TwitterIcon style={iconStyle} />}
+          {type === ContentType.YOUTUBE && <YoutubeIcon style={iconStyle} />}
+          {type ===  ContentType.TWITTER && <TwitterIcon style={iconStyle} />}
           <p className="m-0 text-[.875rem] font-medium">
             {title['0'].toUpperCase() + title.slice(1)}
           </p>

@@ -5,8 +5,6 @@ const userSchema = new Schema({
   password: String,
 });
 
-export const UserModel = model('User', userSchema);
-
 const contentSchema = new Schema({
   title: String,
   link: String,
@@ -32,6 +30,24 @@ const refreshTokenSchema = new Schema({
   expiresAt: { type: Date, required: true },
 });
 
+// Configure toJSON so that __v never appears in JSON output
+userSchema.set('toJSON', {
+  versionKey: false,
+});
+
+linkSchema.set('toJSON', {
+  versionKey: false,
+});
+
+refreshTokenSchema.set('toJSON', {
+  versionKey: false,
+});
+
+contentSchema.set('toJSON', {
+  versionKey: false,
+});
+
+export const UserModel = model('User', userSchema);
 export const RefreshTokenModel = model('RefreshToken', refreshTokenSchema);
 export const ContentModel = model('Content', contentSchema);
 export const LinkModel = model('Link', linkSchema);

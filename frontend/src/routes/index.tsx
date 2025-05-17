@@ -19,8 +19,6 @@ function RequireAuth() {
   const location = useLocation();
   const { isTokenValid } = useAuth();
 
-  console.log(isTokenValid)
-
   if (isTokenValid === false) {
     return <Navigate to="/signin" replace state={{ from: location }} />;
   }

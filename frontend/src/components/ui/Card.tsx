@@ -1,58 +1,62 @@
+import { Tweet } from 'react-tweet';
 import { iconStyle } from '../../constants/iconStyle';
 import DeleteIcon from '../../icons/DeleteIcon';
 import ShareIcon from '../../icons/ShareIcon';
 import TwitterIcon from '../../icons/TwitterIcon';
 import YoutubeIcon from '../../icons/YoutubeIcon';
 import { ContentType } from '../../interfaces/constants';
+import { getTweetId, normalizeYouTubeUrl } from '../../utils/utils';
 
 interface CardProps {
+  id?: string;
   type: ContentType;
   title: string;
   link: string;
+  deleteCard: () => void;
 }
 
-function normalizeYouTubeUrl(url: string): string {
-  return (
-    url
-      // 1) youtu.be/ID → www.youtube.com/embed/ID
-      .replace(
-        /^https?:\/\/youtu\.be\/([^?]+)/,
-        (_m, id) => `https://www.youtube.com/embed/${id}`
-      )
-      // 2) youtube.com/watch?v=ID → www.youtube.com/embed/ID
-      .replace(
-        /^https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([^?&]+)/,
-        (_m, id) => `https://www.youtube.com/embed/${id}`
-      )
-      // 3) only the first "?…=" → "/"
-      .replace(/\?[^=]*=/, '/')
-  );
+declare global {
+  interface Window {
+    twttr?: {
+      widgets?: {
+        load?: () => void;
+        createTweet?: (
+          tweetId: string,
+          element: HTMLElement,
+          options?: Record<string, unknown>,
+        ) => Promise<unknown>;
+      };
+    };
+  }
 }
 
 export default function Card(props: CardProps) {
-  const { type, title, link } = props;
+  const { type, title, link, deleteCard } = props;
+
   return (
-    <div className="flex flex-col gap-2 border border-[#e2e1e4] w-xs p-4 rounded-md bg-white">
+    <div className="flex w-xs flex-col gap-2 rounded-md border border-[#e2e1e4] bg-white p-4">
       {/* Header */}
-      <div className="flex w-full justify-between">
-        <div className="flex gap-2 items-center">
+      <div className="align-items-center flex w-full justify-between">
+        <div className="flex items-center gap-2">
           {type === ContentType.YOUTUBE && <YoutubeIcon style={iconStyle} />}
-          {type ===  ContentType.TWITTER && <TwitterIcon style={iconStyle} />}
+          {type === ContentType.TWITTER && <TwitterIcon style={iconStyle} />}
           <p className="m-0 text-[.875rem] font-medium">
             {title['0'].toUpperCase() + title.slice(1)}
           </p>
         </div>
-        <div className="flex gap-3 items-center text-gray-400">
+        <div className="flex items-center gap-3 text-gray-400">
           <ShareIcon style={iconStyle} />
-          <DeleteIcon style={iconStyle} />
+          <button onClick={() => deleteCard()}>
+            <DeleteIcon style={iconStyle} />
+          </button>
         </div>
       </div>
 
       {/* main */}
-      <div className="w-full">
-        {type === 'youtube' && (
+      <div className="white max-h-[164px] w-full overflow-auto">
+        {type === ContentType.YOUTUBE && (
           <iframe
-            className="w-full rounded mt-3"
+            className="mt-3 w-full rounded"
             src={normalizeYouTubeUrl(link)}
             title="YouTube video player"
             // frameBorder="0"
@@ -62,11 +66,7 @@ export default function Card(props: CardProps) {
           />
         )}
 
-        {type === 'twitter' && (
-          <blockquote className="twitter-tweet w-3xs">
-            <a href={link.replace('x', 'twitter')} target="_blank" />
-          </blockquote>
-        )}
+        {type === ContentType.TWITTER && <Tweet id={getTweetId(link)} />}
       </div>
     </div>
   );

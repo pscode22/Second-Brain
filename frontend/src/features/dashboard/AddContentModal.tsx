@@ -1,17 +1,33 @@
-import { Dispatch, MouseEventHandler, SetStateAction, useRef, useState } from 'react';
+import {  MouseEventHandler, useRef, useState } from 'react';
 import { Modal } from '../../components/ui/Modal';
 import InputField from '../../components/ui/InputField';
-import ContentTypeButton from './ContentTypeBtn';
 import { ContentType } from '../../interfaces/constants';
 import { AddContent } from '../../services/api/content.api';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '../../utils/cn';
+import { ModalProps } from '../../interfaces/generic';
 
-interface ContentCreateModalProps {
-  isModalOpen: boolean;
-  setModalOpen: Dispatch<SetStateAction<boolean>>;
+interface AddContentModalButton {
+  text: string;
+  className : HTMLButtonElement['className'];
+  onClick : MouseEventHandler<HTMLButtonElement>
 }
 
-export default function ContentCreateModel({ isModalOpen, setModalOpen }: ContentCreateModalProps) {
+function ContentTypeButton({ text, className, onClick }: AddContentModalButton) {
+  return (
+    <button
+      className={cn(
+        'text-center cursor-pointer gap-2 rounded-md border-0 bg-gray-200 px-4 py-2 font-normal outline-0',
+        className
+      )}
+      onClick={onClick}
+    >
+      {text}
+    </button>
+  );
+}
+
+export default function ContentCreateModel({ isModalOpen, setModalOpen }: ModalProps) {
   const contentTitleRef = useRef<HTMLInputElement>(null);
   const contentLinkRef = useRef<HTMLInputElement>(null);
   const [contentType, setContentType] = useState<ContentType>(ContentType.NONE);
@@ -24,12 +40,10 @@ export default function ContentCreateModel({ isModalOpen, setModalOpen }: Conten
     const title = contentTitleRef.current?.value;
     const link = contentLinkRef.current?.value;
     const contType = contentType;
-    console.log('mcnbu');
+    
     if (!title || !link || contType === ContentType.NONE) {
       return;
     }
-
-    console.log('deb');
 
     try {
       await AddContent({ title, link, contentType: contType });

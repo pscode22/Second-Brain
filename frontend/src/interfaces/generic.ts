@@ -1,5 +1,6 @@
 import { AxiosError } from 'axios';
 import { ContentType } from './constants';
+import { Dispatch, SetStateAction } from 'react';
 
 export interface GenericResponse {
   message: string;
@@ -39,4 +40,9 @@ export interface Content {
   title: string;
   userId: { _id: string; userName: string };
   _id: string;
+}
+
+export interface ModalProps {
+  isModalOpen: boolean;
+  setModalOpen: Dispatch<SetStateAction<boolean>>;
 }

@@ -10,3 +10,8 @@ export const GetContent = async () => {
   const response = await axios.get('/content');
   return response.data;
 };
+
+export const DeleteContent = async ({ contentId }: { contentId: string }) => {
+  const response = await axios.delete('/content', { data: { contentId } });
+  return response.data;
+};

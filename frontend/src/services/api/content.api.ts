@@ -1,3 +1,4 @@
+import { ContentType } from './../../interfaces/constants';
 import { AddContentProps } from '../../interfaces/generic';
 import { axiosApiInstance as axios } from '../api-interceptors';
 
@@ -6,8 +7,8 @@ export const AddContent = async (contentProps: AddContentProps) => {
   return response.data;
 };
 
-export const GetContent = async () => {
-  const response = await axios.get('/content');
+export const GetContent = async ({ contentType }: { contentType: ContentType }) => {
+  const response = await axios.post('/get/content', { contentType });
   return response.data;
 };
 

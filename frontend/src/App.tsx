@@ -1,11 +1,11 @@
-import { AuthProvider } from './contexts/auth/provider';
+import ContextsProvider from './contexts';
 import RoutesOutlet from './routes';
 
 function App() {
   return (
-    <AuthProvider>
+    <ContextsProvider>
       <RoutesOutlet />
-    </AuthProvider>
+    </ContextsProvider>
   );
 }
 

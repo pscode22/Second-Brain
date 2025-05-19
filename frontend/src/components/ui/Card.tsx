@@ -15,26 +15,11 @@ interface CardProps {
   deleteCard: () => void;
 }
 
-declare global {
-  interface Window {
-    twttr?: {
-      widgets?: {
-        load?: () => void;
-        createTweet?: (
-          tweetId: string,
-          element: HTMLElement,
-          options?: Record<string, unknown>,
-        ) => Promise<unknown>;
-      };
-    };
-  }
-}
-
 export default function Card(props: CardProps) {
   const { type, title, link, deleteCard } = props;
 
   return (
-    <div className="flex w-xs flex-col gap-2 rounded-md border border-[#e2e1e4] bg-white p-4">
+    <div className="flex w-[350px] flex-col gap-2 rounded-md border border-[#e2e1e4] bg-white p-4">
       {/* Header */}
       <div className="align-items-center flex w-full justify-between">
         <div className="flex items-center gap-2">
@@ -47,7 +32,7 @@ export default function Card(props: CardProps) {
         <div className="flex items-center gap-3 text-gray-400">
           <ShareIcon style={iconStyle} />
           <button onClick={() => deleteCard()}>
-            <DeleteIcon style={iconStyle} />
+          <DeleteIcon style={iconStyle} />
           </button>
         </div>
       </div>

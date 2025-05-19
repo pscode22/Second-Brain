@@ -9,6 +9,7 @@ export enum Localforage {
 }
 
 export enum ContentType {
+  ALL = 'all',
   YOUTUBE = 'youtube',
   TWITTER = 'twitter',
   NONE = 'none'

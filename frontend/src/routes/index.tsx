@@ -8,6 +8,9 @@ const RouteSignUp = lazy(() => import('../routes/signup'));
 const RouteDashboard = lazy(() => import('../routes/dashboard'));
 const RouteProfile = lazy(() => import('../routes/profile'));
 const RoutePageNotFound = lazy(() => import('../routes/notfound'));
+const RouteTwitter = lazy(() => import('../routes/twitter'));
+const RouteYoutube = lazy(() => import('../routes/youtube'));
+const RouteLayout = lazy(() => import('../routes/layout'));
 
 const Loader: React.FC = () => (
   <div className="flex h-screen items-center justify-center bg-gray-100">
@@ -36,8 +39,12 @@ export default function RoutesOutlet() {
         <Route path="/signup" element={<RouteSignUp />} />
         {/* Protected routes */}
         <Route element={<RequireAuth />}>
-          <Route path="/dashboard" element={<RouteDashboard />} />
-          <Route path="/profile" element={<RouteProfile />} />
+          <Route element={<RouteLayout />}>
+            <Route path="/dashboard" element={<RouteDashboard />} />
+            <Route path="/profile" element={<RouteProfile />} />
+            <Route path="/twitter" element={<RouteTwitter />} />
+            <Route path="/youtube" element={<RouteYoutube />} />
+          </Route>
         </Route>
         {/* Catch-all */}
         + <Route path="*" element={<RoutePageNotFound />} />

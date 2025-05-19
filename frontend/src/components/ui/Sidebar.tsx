@@ -7,6 +7,7 @@ import SidebarItem from './SidebarItem';
 import { ActiveSidebarItem } from '../../interfaces/constants';
 import { FaSquareXTwitter } from 'react-icons/fa6';
 import { LuBrain } from 'react-icons/lu';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
   isMinSidebar: boolean;
@@ -15,6 +16,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isMinSidebar, toggleSidebar }: SidebarProps) {
   const [activeItem, setActiveItem] = useState<ActiveSidebarItem>(ActiveSidebarItem.ALL);
+  const navigate = useNavigate();
   return (
     <aside
       className={cn(
@@ -46,7 +48,10 @@ export default function Sidebar({ isMinSidebar, toggleSidebar }: SidebarProps) {
             }
             title="All"
             iconOnly={isMinSidebar}
-            onClick={() => setActiveItem(ActiveSidebarItem.ALL)}
+            onClick={() => {
+              setActiveItem(ActiveSidebarItem.ALL);
+              navigate('/dashboard');
+            }}
             isActive={activeItem === ActiveSidebarItem.ALL}
           />
           <br />
@@ -59,7 +64,10 @@ export default function Sidebar({ isMinSidebar, toggleSidebar }: SidebarProps) {
             }
             title="Twitter"
             iconOnly={isMinSidebar}
-            onClick={() => setActiveItem(ActiveSidebarItem.TWITTER)}
+            onClick={() => {
+              setActiveItem(ActiveSidebarItem.TWITTER);
+              navigate('/twitter');
+            }}
             isActive={activeItem === ActiveSidebarItem.TWITTER}
           />
           <br />
@@ -72,7 +80,10 @@ export default function Sidebar({ isMinSidebar, toggleSidebar }: SidebarProps) {
             }
             title="Youtube"
             iconOnly={isMinSidebar}
-            onClick={() => setActiveItem(ActiveSidebarItem.YOUTUBE)}
+            onClick={() => {
+              setActiveItem(ActiveSidebarItem.YOUTUBE);
+              navigate('/youtube')
+            }}
             isActive={activeItem === ActiveSidebarItem.YOUTUBE}
           />
         </div>

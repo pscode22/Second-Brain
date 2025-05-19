@@ -122,7 +122,7 @@ app.post('/api/v1/signin', async (req, res) => {
         accessToken,
         refreshToken: tokenExist.token,
         ok: true,
-        userName : user.userName
+        userName: user.userName,
       });
       return;
     }
@@ -289,6 +289,27 @@ app.post('/api/v1/content', userMiddleware, async (req, res) => {
   }
 });
 
+app.post('/api/v1/get/content', userMiddleware, async (req, res) => {
+  const { userId } = req;
+  const { contentType } = req.body;
+  try {
+    const content =
+      contentType === 'all'
+        ? await ContentModel.find({ userId }).populate('userId', 'userName')
+        : await ContentModel.find({ userId, contentType }).populate(
+            'userId',
+            'userName'
+          );
+
+    res.status(200).json({ data: content });
+  } catch (error) {
+    res.json({
+      message: 'Something went wrong, try again.',
+      error,
+    });
+  }
+});
+
 app.get('/api/v1/content', userMiddleware, async (req, res) => {
   const { userId } = req;
   try {
@@ -300,7 +321,7 @@ app.get('/api/v1/content', userMiddleware, async (req, res) => {
   } catch (error) {
     res.json({
       message: 'Something went wrong, try again.',
-      error
+      error,
     });
   }
 });

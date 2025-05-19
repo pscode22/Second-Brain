@@ -5,20 +5,17 @@ import Card from '../components/ui/Card';
 import { Content } from '../interfaces/generic';
 import { useDeleteContent } from '../hooks/useDeleteContent';
 
-export default function Dashboard() {
+export default function Twitter() {
   const [contents, setContents] = useState<Content[]>([]);
   const { setDelContent } = useDeleteContent();
 
   useEffect(() => {
     const getContent = async () => {
-      const contents = await GetContent({ contentType: ContentType.ALL });
+      const contents = await GetContent({ contentType: ContentType.TWITTER });
       setContents(contents.data);
     };
     getContent();
   }, []);
-
-
-  console.log(contents)
 
   return (
     <>

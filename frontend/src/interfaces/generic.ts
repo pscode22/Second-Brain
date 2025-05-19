@@ -46,3 +46,13 @@ export interface ModalProps {
   isModalOpen: boolean;
   setModalOpen: Dispatch<SetStateAction<boolean>>;
 }
+
+export interface DeleteContentProps {
+  content?: Content;
+  isModalOpen: boolean;
+}
+
+export interface DeleteContContext {
+  delContent: DeleteContentProps;
+  setDelContent: Dispatch<SetStateAction<DeleteContentProps>>;
+}

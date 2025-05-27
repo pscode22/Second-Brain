@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
-import { FiLoader } from 'react-icons/fi';
 import { useAuth } from '../hooks/useAuth';
+import Loader from '../components/ui/Loader';
 
 const RouteSignIn = lazy(() => import('../routes/signin'));
 const RouteSignUp = lazy(() => import('../routes/signup'));
@@ -12,11 +12,6 @@ const RouteTwitter = lazy(() => import('../routes/twitter'));
 const RouteYoutube = lazy(() => import('../routes/youtube'));
 const RouteLayout = lazy(() => import('../routes/layout'));
 
-const Loader: React.FC = () => (
-  <div className="flex h-screen items-center justify-center bg-gray-100">
-    <FiLoader className="animate-spin text-4xl text-purple-600" />
-  </div>
-);
 
 function RequireAuth() {
   const location = useLocation();

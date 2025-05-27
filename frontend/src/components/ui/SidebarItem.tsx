@@ -7,9 +7,17 @@ interface SidebarItem {
   iconOnly: boolean;
   onClick: MouseEventHandler<HTMLButtonElement>;
   isActive: boolean;
+  className?: string;
 }
 
-export default function SidebarItem({ icon, title, iconOnly, onClick, isActive }: SidebarItem) {
+export default function SidebarItem({
+  icon,
+  title,
+  iconOnly,
+  onClick,
+  isActive,
+  className,
+}: SidebarItem) {
   return (
     <button
       onClick={onClick}
@@ -18,6 +26,7 @@ export default function SidebarItem({ icon, title, iconOnly, onClick, isActive }
         iconOnly && 'justify-center',
         !iconOnly && 'gap-3',
         isActive && 'bg-[#d9ddee] text-purple-600',
+        className,
       )}
     >
       <div>{icon}</div>

@@ -1,11 +1,13 @@
 import { ReactElement } from 'react';
+import { cn } from '../../utils/cn';
 
 interface ButtonProps {
   variant: 'primary' | 'secondary';
   text: string;
   startIcon?: ReactElement;
   endIcon?: ReactElement;
-  onClick? : React.MouseEventHandler<HTMLButtonElement>
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  className?: string;
 }
 
 const defaultClasses =
@@ -17,10 +19,13 @@ const variantClasses = {
 };
 
 export function Button(props: ButtonProps) {
-  const { variant, text, startIcon, endIcon, onClick } = props;
+  const { variant, text, startIcon, endIcon, onClick, className } = props;
 
   return (
-    <button className={`${defaultClasses} ${variantClasses[variant]}`} onClick={onClick}>
+    <button
+      className={cn(`${defaultClasses} ${variantClasses[variant]} ${className}`)}
+      onClick={onClick}
+    >
       {startIcon}
       {text}
       {endIcon}

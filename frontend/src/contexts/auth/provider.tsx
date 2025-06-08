@@ -57,7 +57,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
     }
   }, []);
-  console.log(isTokenValid);
 
   useLayoutEffect(() => {
     try {

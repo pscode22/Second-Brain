@@ -18,7 +18,6 @@ axiosApiInstance.interceptors.request.use(async (req: InternalAxiosRequestConfig
   const urlStr = (req.url || '').split('?')[0];
 
   const token =  await ReadTokenConfig();
-  ;
 
   // Attach Access Token to private-req Auth
   if (!allowedUrls.includes(urlStr)) {

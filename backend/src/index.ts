@@ -367,6 +367,12 @@ app.get('/api/v1/brain/:shareLink', async (req, res) => {
   if (shareLink) {
     try {
       const linkRes = await LinkModel.findOne({ hashLink: shareLink });
+
+      if (!linkRes) {
+        res.status(400).json({ message: 'Invalid share link' });
+        return;
+      }
+
       if (linkRes) {
         const user = await UserModel.findOne({ _id: linkRes.userId });
 

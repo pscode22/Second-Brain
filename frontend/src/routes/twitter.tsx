@@ -29,6 +29,9 @@ export default function Twitter() {
           deleteCard={() => setDelContent({ content: item, isModalOpen: true })}
         />
       ))}
+       {contents.length === 0 && (
+        <div className="mt-10 w-full text-center text-xl font-medium">No Contents found.</div>
+      )}
     </>
   );
 }

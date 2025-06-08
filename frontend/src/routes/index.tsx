@@ -11,6 +11,7 @@ const RoutePageNotFound = lazy(() => import('../routes/notfound'));
 const RouteTwitter = lazy(() => import('../routes/twitter'));
 const RouteYoutube = lazy(() => import('../routes/youtube'));
 const RouteLayout = lazy(() => import('../routes/layout'));
+const RouteShare = lazy(() => import('../routes/share'));
 
 
 function RequireAuth() {
@@ -32,6 +33,7 @@ export default function RoutesOutlet() {
         <Route index element={<Navigate to="/signin" replace />} />
         <Route path="/signin" element={<RouteSignIn />} />
         <Route path="/signup" element={<RouteSignUp />} />
+        <Route path="/share/:shareLink" element={<RouteShare />} />
         {/* Protected routes */}
         <Route element={<RequireAuth />}>
           <Route element={<RouteLayout />}>
@@ -42,7 +44,7 @@ export default function RoutesOutlet() {
           </Route>
         </Route>
         {/* Catch-all */}
-        + <Route path="*" element={<RoutePageNotFound />} />
+        <Route path="*" element={<RoutePageNotFound />} />
       </Routes>
     </Suspense>
   );

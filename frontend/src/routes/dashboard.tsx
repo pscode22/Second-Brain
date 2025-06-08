@@ -17,18 +17,24 @@ export default function Dashboard() {
     getContent();
   }, []);
 
+  console.log(contents);
+
   return (
     <>
-      {contents.length > 0 && contents.map((item) => (
-        <Card
-          type={item.contentType}
-          title={item.title}
-          link={item.link}
-          id={item._id}
-          key={item._id}
-          deleteCard={() => setDelContent({ content: item, isModalOpen: true })}
-        />
-      ))}
+      {contents.length > 0 &&
+        contents.map((item) => (
+          <Card
+            type={item.contentType}
+            title={item.title}
+            link={item.link}
+            id={item._id}
+            key={item._id}
+            deleteCard={() => setDelContent({ content: item, isModalOpen: true })}
+          />
+        ))}
+      {contents.length === 0 && (
+        <div className="mt-10 w-full text-center text-xl font-medium">No Contents found.</div>
+      )}
     </>
   );
 }

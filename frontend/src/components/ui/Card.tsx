@@ -1,7 +1,6 @@
 import { Tweet } from 'react-tweet';
 import { iconStyle } from '../../constants/iconStyle';
 import DeleteIcon from '../../icons/DeleteIcon';
-import ShareIcon from '../../icons/ShareIcon';
 import TwitterIcon from '../../icons/TwitterIcon';
 import YoutubeIcon from '../../icons/YoutubeIcon';
 import { ContentType } from '../../interfaces/constants';
@@ -13,10 +12,11 @@ interface CardProps {
   title: string;
   link: string;
   deleteCard: () => void;
+  isDelete?: boolean;
 }
 
 export default function Card(props: CardProps) {
-  const { type, title, link, deleteCard } = props;
+  const { type, title, link, deleteCard, isDelete = true } = props;
 
   return (
     <div className="flex w-[350px] flex-col gap-2 rounded-md border border-[#e2e1e4] bg-white p-4">
@@ -29,12 +29,12 @@ export default function Card(props: CardProps) {
             {title['0'].toUpperCase() + title.slice(1)}
           </p>
         </div>
-        <div className="flex items-center gap-3 text-gray-400">
-          <ShareIcon style={iconStyle} />
-          <button onClick={() => deleteCard()}>
-          <DeleteIcon style={iconStyle} />
+
+        {isDelete && (
+          <button onClick={deleteCard} className="text-gray-400">
+            <DeleteIcon style={iconStyle} />
           </button>
-        </div>
+        )}
       </div>
 
       {/* main */}

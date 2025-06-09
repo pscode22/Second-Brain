@@ -2,7 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { LuBrain } from 'react-icons/lu';
 import { useLayoutEffect, useState } from 'react';
-import { Content } from '../interfaces/generic';
+import { Content, SharedLinkRes } from '../interfaces/generic';
 import { GetAllContentsByShareLink } from '../services/api/content.api';
 import Card from '../components/ui/Card';
 import { AxiosError } from 'axios';
@@ -11,6 +11,7 @@ export default function Share() {
   const navigate = useNavigate();
   const params = useParams();
 
+  const [user, setUser] = useState<{ _id: string; userName: string } | null>(null);
   const [contents, setContents] = useState<Content[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isErr, setIsErr] = useState<{ err: boolean; errMsg?: string }>({ err: false });
@@ -19,11 +20,14 @@ export default function Share() {
     const getContent = async () => {
       setIsLoading(true);
       try {
-        const contents = await GetAllContentsByShareLink({ shareLink: params.shareLink || '' });
-        console.log(contents);
-        if (contents) {
-          setContents(contents.contents);
+        const res: SharedLinkRes = await GetAllContentsByShareLink({
+          shareLink: params.shareLink || '',
+        });
+        if (res) {
+          setUser(res.user);
+          setContents(res.content);
         } else {
+          setUser(null);
           setContents([]);
         }
       } catch (error) {
@@ -49,7 +53,13 @@ export default function Share() {
             <LuBrain size={'2rem'} color="#463ad6" className="hover:cursor-pointer" />
           </div>
           <h3 className="m-0 text-start text-2xl font-bold whitespace-nowrap text-[#202b3c] duration-200">
-            Second Brain
+            {isLoading && ''}
+            {!isLoading && (
+              <>
+                {isErr.err && 'Second Brain'}
+                {!isErr.err && user && user._id && `${user.userName}'s Second Brain`}
+              </>
+            )}
           </h3>
         </div>
 

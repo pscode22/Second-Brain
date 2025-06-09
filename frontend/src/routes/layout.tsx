@@ -2,11 +2,13 @@ import { Suspense, useState } from 'react';
 import Header from '../components/ui/Header';
 import Sidebar from '../components/ui/Sidebar';
 import { cn } from '../utils/cn';
-import AddContentModal from '../features/dashboard/AddContentModal';
-import DeleteContentModal from '../features/dashboard/DeleteContentModal';
+import AddContentModal from '../features/AddContentModal';
+import DeleteContentModal from '../features/DeleteContentModal';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useDeleteContent } from '../hooks/useDeleteContent';
 import Loader from '../components/ui/Loader';
+import { useShareContent } from '../hooks/useShareContent';
+import { ShareContentModal } from '../features/shareContentModal';
 
 export default function Layout() {
   //   const [contents, setContents] = useState<Content[]>([]);
@@ -17,6 +19,8 @@ export default function Layout() {
   const toggleSidebar = () => setIsMinSidebar(!isMinSidebar);
 
   const { delContent, setDelContent } = useDeleteContent();
+
+  const { shareContent, setShareContent } = useShareContent();
 
   const location = useLocation();
 
@@ -47,6 +51,11 @@ export default function Layout() {
             isModalOpen={delContent.isModalOpen}
             closeModal={() => setDelContent({ isModalOpen: false })}
             content={delContent.content || null}
+          />
+          <ShareContentModal
+            isOpen={shareContent.isModalOpen}
+            onClose={() => setShareContent({ isModalOpen: false })}
+            link={shareContent.shareableLink || ''}
           />
         </div>
       </Suspense>

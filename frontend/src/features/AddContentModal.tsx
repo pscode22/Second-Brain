@@ -1,11 +1,11 @@
 import {  MouseEventHandler, useRef, useState } from 'react';
-import { Modal } from '../../components/ui/Modal';
-import InputField from '../../components/ui/InputField';
-import { ContentType } from '../../interfaces/constants';
-import { AddContent } from '../../services/api/content.api';
+import { Modal } from '../components/ui/Modal';
+import InputField from '../components/ui/InputField';
+import { ContentType } from '../interfaces/constants';
+import { AddContent } from '../services/api/content.api';
 import { useNavigate } from 'react-router-dom';
-import { cn } from '../../utils/cn';
-import { ModalProps } from '../../interfaces/generic';
+import { cn } from '../utils/cn';
+import { ModalProps } from '../interfaces/generic';
 
 interface AddContentModalButton {
   text: string;

@@ -17,8 +17,6 @@ export default function Dashboard() {
     getContent();
   }, []);
 
-  console.log(contents);
-
   return (
     <>
       {contents.length > 0 &&

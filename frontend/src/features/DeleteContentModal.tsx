@@ -1,10 +1,10 @@
 import { Tweet } from 'react-tweet';
-import { Modal } from '../../components/ui/Modal';
-import { ContentType } from '../../interfaces/constants';
-import { Content } from '../../interfaces/generic';
-import { getTweetId, normalizeYouTubeUrl } from '../../utils/utils';
+import { Modal } from '../components/ui/Modal';
+import { ContentType } from '../interfaces/constants';
+import { Content } from '../interfaces/generic';
+import { getTweetId, normalizeYouTubeUrl } from '../utils/utils';
 import { MouseEventHandler } from 'react';
-import { DeleteContent } from '../../services/api/content.api';
+import { DeleteContent } from '../services/api/content.api';
 import { useNavigate } from 'react-router-dom';
 
 interface DeleteContentProps {

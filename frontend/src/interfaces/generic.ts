@@ -56,3 +56,18 @@ export interface DeleteContContext {
   delContent: DeleteContentProps;
   setDelContent: Dispatch<SetStateAction<DeleteContentProps>>;
 }
+
+export interface ShareContentProps {
+  isModalOpen: boolean;
+  shareableLink?: string;
+}
+
+export interface ShareContContext {
+  shareContent: ShareContentProps;
+  setShareContent: Dispatch<SetStateAction<ShareContentProps>>;
+}
+
+export interface SharedLinkRes {
+  content: Content[];
+  user: { _id: string; userName: string };
+}

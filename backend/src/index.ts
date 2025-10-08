@@ -1,14 +1,18 @@
-import express, { json } from 'express';
-import mongoose from 'mongoose';
-import { ContentModel, LinkModel, RefreshTokenModel, UserModel } from './db';
-import { signInValidation, signUpValidation } from './validations';
-import bcrypt from 'bcrypt';
-import jwt, { JwtPayload } from 'jsonwebtoken';
-import { JWT_REFRESH_SECRET, JWT_ACCESS_SECRET } from './config';
-import { userMiddleware } from './middleware';
-import { randomString } from './utils';
-import cookieParser from 'cookie-parser';
-import cors from 'cors';
+// ✅ MUST be first line in the file
+import dotenv from "dotenv";
+dotenv.config();
+
+import express, { json, Request, Response } from "express";
+import mongoose from "mongoose";
+import { ContentModel, LinkModel, RefreshTokenModel, UserModel } from "./db";
+import { signInValidation, signUpValidation } from "./validations";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { userMiddleware } from "./middleware";
+import { randomString } from "./utils";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import { createAccessToken, createRefreshToken } from "./utils";
 
 declare global {
   namespace Express {
@@ -21,393 +25,354 @@ declare global {
 const app = express();
 app.use(json());
 app.use(cookieParser());
-// const corsOptions = {
-//   // @ts-ignore
-//   origin: function (origin, callback) {
-//     // Allow requests with no origin (like mobile apps or curl requests)
-//     if (!origin) return callback(null, true);
-
-//     // List all allowed origins
-//     const allowedOrigins = ['http://localhost:5173', 'http://localhost:4000'];
-//     if (allowedOrigins.indexOf(origin) !== -1) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   credentials: true, // This is CRITICAL for cookies
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization'],
-// };
-
 app.use(cors());
 
-const { log } = console;
-
-// Token lifetimes
-const ACCESS_TOKEN_LIFETIME = '15m'; // Access tokens live 15 minutes
-const IDLE_LIFETIME_S = 15 * 24 * 60 * 60; // Idle expiry: 15 days in seconds
-const ABSOLUTE_LIFETIME_S = 30 * 24 * 60 * 60; // Absolute expiry: 30 days in seconds
-
-app.post('/api/v1/signup', async (req, res) => {
-  // zod validation
-  const zodValidation = signUpValidation.safeParse(req.body);
-
-  if (!zodValidation.success) {
-    res
-      .status(400)
-      .json({ message: 'Invalid format.', error: zodValidation.error });
+// ✅ SIGN UP
+app.post("/api/v1/signup", async (req: Request, res: Response) => {
+  const validation = signUpValidation.safeParse(req.body);
+  if (!validation.success) {
+    res.status(400).json({
+      ok: false,
+      message: "Invalid input format",
+      error: validation.error.errors.map((e) => e.message),
+    });
+    return;
   }
 
-  const { userName, password } = req.body;
+  const { userName, password } = validation.data;
 
   try {
-    const userFound = await UserModel.findOne({ userName });
-    // check if email already exist in db.
-    if (userFound) {
+    const existing = await UserModel.findOne({ userName });
+    if (existing) {
       res.status(409).json({
-        message: 'user already exist.',
-      });
-    }
-
-    // hash password with bcrypt.
-    const hashedPassword = await bcrypt.hash(password, 5);
-
-    await UserModel.create({ userName, password: hashedPassword });
-    res.status(200).json({ message: 'sign up successful!' });
-  } catch (error) {
-    res.json({
-      message: 'Something went wrong, try again.',
-    });
-  }
-});
-
-app.post('/api/v1/signin', async (req, res) => {
-  try {
-    // Validate input
-    const parse = signInValidation.safeParse(req.body);
-    if (!parse.success) {
-      res
-        .status(400)
-        .json({ message: 'Invalid input format.', error: parse.error });
-      return;
-    }
-
-    const { userName, password } = parse.data;
-
-    // Find user
-    const user = await UserModel.findOne({ userName });
-    if (!user) {
-      res.status(403).json({ message: 'Invalid credentials.' });
-      return;
-    }
-
-    // Verify password
-    const match = await bcrypt.compare(password, user.password!);
-    if (!match) {
-      res.status(403).json({ message: 'Invalid credentials.' });
-      return;
-    }
-
-    // Issue access token (short-lived)
-    const accessToken = jwt.sign({ userId: user._id }, JWT_ACCESS_SECRET, {
-      expiresIn: ACCESS_TOKEN_LIFETIME,
-    });
-
-    const tokenExist = await RefreshTokenModel.findOne({ userId: user.id });
-
-    if (tokenExist) {
-      res.status(200).json({
-        message: 'Signed in',
-        accessToken,
-        refreshToken: tokenExist.token,
-        ok: true,
-        userName: user.userName,
+        ok: false,
+        message: "User already exists. Please sign in.",
       });
       return;
     }
 
-    // Generate new JTI using mongoose ObjectId
-    const jti = new mongoose.Types.ObjectId().toHexString();
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await UserModel.create({ userName, password: hashed });
 
-    // Issue refresh token (long-lived) embedding jti
-    const refreshToken = jwt.sign({ userId: user._id }, JWT_REFRESH_SECRET, {
-      expiresIn: `${ABSOLUTE_LIFETIME_S}s`, // Absolute TTL in seconds
-      jwtid: jti, // embed jti for one-time use
-    });
+    const accessToken = createAccessToken(user._id.toString());
+    const refreshToken = createRefreshToken(user._id.toString());
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    // Persist refresh token record (store jti)
-    const now = new Date();
-    await RefreshTokenModel.create({
-      token: jti,
-      userId: user._id,
-      createdAt: now,
-      lastUsedAt: now, // initial idle timestamp
-      expiresAt: new Date(now.getTime() + ABSOLUTE_LIFETIME_S * 1000), // maxAge in ms
-    });
+    await RefreshTokenModel.findOneAndUpdate(
+      { userId: user._id },
+      { token: refreshToken, createdAt: new Date(), expiresAt },
+      { upsert: true }
+    );
 
-    // Respond with access token
-    res.status(200).json({
-      message: 'Signed in',
+    res.status(201).json({
+      ok: true,
+      message: "Sign up successful!",
       accessToken,
       refreshToken,
-      ok: true,
       userName: user.userName,
     });
-  } catch (error) {
-    console.error('Signin error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return;
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Unexpected signup error.";
+    res.status(500).json({ ok: false, message });
+    return;
   }
 });
 
-app.post('/api/v1/refresh', async (req, res) => {
-  try {
-    const oldToken = req.body.refreshToken;
-    console.log(oldToken);
-    if (!oldToken) {
-      res.status(401).json({ message: 'No refresh token provided' });
-      return;
-    }
-
-    // Verify the old refresh token
-    let payload: jwt.JwtPayload;
-    try {
-      payload = jwt.verify(oldToken, JWT_REFRESH_SECRET) as jwt.JwtPayload;
-    } catch {
-      res.status(403).json({ message: 'Invalid refresh token' });
-      return;
-    }
-
-    const now = new Date();
-
-    // Find the existing refresh token record
-    const existingToken = await RefreshTokenModel.findOne({
-      token: payload.jti,
-      userId: payload.userId,
+// ✅ SIGN IN
+app.post("/api/v1/signin", async (req: Request, res: Response) => {
+  const validation = signInValidation.safeParse(req.body);
+  if (!validation.success) {
+    res.status(400).json({
+      ok: false,
+      message: "Invalid input format",
+      error: validation.error.errors.map((e) => e.message),
     });
-    if (!existingToken) {
-      res.status(403).json({ message: 'Refresh token not found' });
-      return;
-    }
-
-    // Check for absolute expiration
-    if (existingToken.expiresAt.getTime() <= now.getTime()) {
-      res.status(403).json({ message: 'Refresh token has expired' });
-      return;
-    }
-
-    const newJti = new mongoose.Types.ObjectId().toHexString();
-
-    // Atomically find and update the refresh token
-    const updatedToken = await RefreshTokenModel.findOneAndUpdate(
-      {
-        token: payload.jti,
-        userId: payload.userId,
-        expiresAt: { $gt: now },
-        lastUsedAt: { $gt: new Date(now.getTime() - IDLE_LIFETIME_S * 1000) },
-      },
-      {
-        $set: {
-          token: newJti,
-          lastUsedAt: now,
-        },
-      },
-      { new: true }
-    );
-
-    if (!updatedToken) {
-      res
-        .status(403)
-        .json({ message: 'Refresh token expired or already used' });
-      return;
-    }
-
-    // Calculate remaining time until absolute expiration
-    const remainingTimeMs = updatedToken.expiresAt.getTime() - now.getTime();
-    const remainingTimeSec = Math.floor(remainingTimeMs / 1000);
-
-    // Issue new refresh token with the same expiration as the original
-    const newRefreshToken = jwt.sign(
-      { userId: payload.userId },
-      JWT_REFRESH_SECRET,
-      {
-        expiresIn: remainingTimeSec,
-        jwtid: newJti,
-      }
-    );
-
-    // Issue new access token
-    const accessToken = jwt.sign(
-      { userId: payload.userId },
-      JWT_ACCESS_SECRET,
-      { expiresIn: ACCESS_TOKEN_LIFETIME }
-    );
-
-    res.status(200).json({ accessToken, refreshToken: newRefreshToken });
     return;
-  } catch (error) {
-    console.error('Refresh error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+  }
+
+  const { userName, password } = validation.data;
+
+  try {
+    const user = await UserModel.findOne({ userName });
+    if (!user) {
+      res.status(403).json({ ok: false, message: "Invalid credentials." });
+      return;
+    }
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      res.status(403).json({ ok: false, message: "Invalid credentials." });
+      return;
+    }
+
+    const accessToken = createAccessToken(user._id.toString());
+    const refreshToken = createRefreshToken(user._id.toString());
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    await RefreshTokenModel.findOneAndUpdate(
+      { userId: user._id },
+      { token: refreshToken, createdAt: new Date(), expiresAt },
+      { upsert: true }
+    );
+
+    res.status(200).json({
+      ok: true,
+      message: "Signed in successfully",
+      accessToken,
+      refreshToken,
+      userName: user.userName,
+    });
+    return;
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Unexpected sign-in error.";
+    res.status(500).json({ ok: false, message });
     return;
   }
 });
 
-// logout
-app.post('/api/v1/logout', async (req, res) => {
-  const { refreshToken } = req.body;
+// ✅ REFRESH TOKEN
+app.post("/api/v1/refresh", async (req: Request, res: Response) => {
+  const { refreshToken } = req.body as { refreshToken?: string };
 
-  // Verify the old refresh token
-  let payload: jwt.JwtPayload;
+  if (!refreshToken) {
+    res.status(401).json({ ok: false, message: "No refresh token provided" });
+    return;
+  }
+
   try {
-    payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as jwt.JwtPayload;
+    const payload = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET as string
+    ) as jwt.JwtPayload;
+
+    const stored = await RefreshTokenModel.findOne({
+      userId: payload.userId,
+      token: refreshToken,
+    });
+
+    if (!stored) {
+      res.status(403).json({
+        ok: false,
+        message: "Refresh token invalid or expired",
+      });
+      return;
+    }
+
+    const newAccessToken = createAccessToken(payload.userId);
+    const newRefreshToken = createRefreshToken(payload.userId);
+
+    stored.token = newRefreshToken;
+    stored.updatedAt = new Date();
+    stored.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await stored.save();
+
+    res.status(200).json({
+      ok: true,
+      message: "Token refreshed successfully",
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    });
+    return;
   } catch {
-    res.status(403).json({ message: 'Invalid refresh token' });
+    res.status(403).json({
+      ok: false,
+      message: "Invalid or expired refresh token",
+    });
+    return;
+  }
+});
+
+// ✅ LOGOUT
+app.post("/api/v1/logout", async (req: Request, res: Response) => {
+  const { refreshToken } = req.body as { refreshToken?: string };
+
+  if (!refreshToken) {
+    res.status(400).json({ ok: false, message: "No refresh token provided" });
     return;
   }
 
   try {
+    const payload = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET as string
+    ) as jwt.JwtPayload;
+
     await RefreshTokenModel.deleteOne({
-      token: payload.jti,
       userId: payload.userId,
+      token: refreshToken,
     });
-  } catch (error) {
-    res.status(403).json({ message: 'token or user not found' });
+
+    res.status(200).json({
+      ok: true,
+      message: "Logged out successfully",
+    });
+    return;
+  } catch {
+    res.status(403).json({
+      ok: false,
+      message: "Invalid refresh token",
+    });
     return;
   }
-  res.status(200).json({ message: 'Logged out' });
 });
 
-app.post('/api/v1/content', userMiddleware, async (req, res) => {
-  const { title, link, contentType } = req.body;
-  try {
-    await ContentModel.create({ title, link, contentType, userId: req.userId });
-    res.status(200).json({ message: 'Content created' });
-  } catch (error) {
-    res.json({
-      message: 'Something went wrong, try again.',
-    });
-  }
-});
-
-app.post('/api/v1/get/content', userMiddleware, async (req, res) => {
-  const { userId } = req;
-  const { contentType } = req.body;
-  try {
-    const content =
-      contentType === 'all'
-        ? await ContentModel.find({ userId }).populate('userId', 'userName')
-        : await ContentModel.find({ userId, contentType }).populate(
-            'userId',
-            'userName'
-          );
-
-    res.status(200).json({ data: content });
-  } catch (error) {
-    res.json({
-      message: 'Something went wrong, try again.',
-      error,
-    });
-  }
-});
-
-app.get('/api/v1/content', userMiddleware, async (req, res) => {
-  const { userId } = req;
-  try {
-    const content = await ContentModel.find({ userId }).populate(
-      'userId',
-      'userName'
-    );
-    res.status(200).json({ data: content });
-  } catch (error) {
-    res.json({
-      message: 'Something went wrong, try again.',
-      error,
-    });
-  }
-});
-
-app.delete('/api/v1/content', userMiddleware, async (req, res) => {
-  const { userId } = req;
-  const { contentId } = req.body;
-  try {
-    await ContentModel.deleteOne({ userId, _id: contentId });
-    res.status(200).json({ message: 'Content deleted.' });
-  } catch (error) {
-    log(error);
-    res.json({
-      error,
-      message: 'Something went wrong, try again.',
-    });
-  }
-});
-
-app.post('/api/v1/brain/share', userMiddleware, async (req, res) => {
-  const { share } = req.body;
-  const { userId } = req;
-
-  if (!share) {
-    await LinkModel.deleteOne({ userId });
-    res.status(200).json({ message: 'sharedLink is deleted.' });
-  } else {
-    const isLink = await LinkModel.findOne({ userId });
-
-    if (isLink) {
-      res.status(200).json({ sharableLink: isLink.hashLink });
-    } else {
-      const createLink = randomString(10);
-      await LinkModel.create({ hashLink: createLink, userId });
-      res.status(200).json({ sharableLink: createLink });
+// ✅ CONTENT ROUTES
+app.post(
+  "/api/v1/content",
+  userMiddleware,
+  async (req: Request, res: Response) => {
+    const { title, link, contentType } = req.body;
+    try {
+      await ContentModel.create({
+        title,
+        link,
+        contentType,
+        userId: req.userId,
+      });
+      res.status(200).json({ ok: true, message: "Content created" });
+      return;
+    } catch {
+      res.status(500).json({ ok: false, message: "Failed to create content" });
+      return;
     }
   }
-});
+);
 
-app.get('/api/v1/brain/:shareLink', async (req, res) => {
-  const { shareLink } = req.params;
+app.post(
+  "/api/v1/get/content",
+  userMiddleware,
+  async (req: Request, res: Response) => {
+    const { userId } = req;
+    const { contentType } = req.body as { contentType: string };
 
-  if (shareLink) {
     try {
-      const linkRes = await LinkModel.findOne({ hashLink: shareLink });
+      const content =
+        contentType === "all"
+          ? await ContentModel.find({ userId }).populate("userId", "userName")
+          : await ContentModel.find({ userId, contentType }).populate(
+              "userId",
+              "userName"
+            );
 
-      if (!linkRes) {
-        res.status(400).json({ message: 'Invalid share link' });
+      res
+        .status(200)
+        .json({ ok: true, message: "Fetched successfully", data: content });
+      return;
+    } catch {
+      res.status(500).json({ ok: false, message: "Failed to fetch content" });
+      return;
+    }
+  }
+);
+
+app.delete(
+  "/api/v1/content",
+  userMiddleware,
+  async (req: Request, res: Response) => {
+    const { userId } = req;
+    const { contentId } = req.body as { contentId: string };
+
+    try {
+      await ContentModel.deleteOne({ userId, _id: contentId });
+      res
+        .status(200)
+        .json({ ok: true, message: "Content deleted successfully" });
+      return;
+    } catch {
+      res.status(500).json({ ok: false, message: "Failed to delete content" });
+      return;
+    }
+  }
+);
+
+// ✅ SHARE LINK
+app.post(
+  "/api/v1/brain/share",
+  userMiddleware,
+  async (req: Request, res: Response) => {
+    const { share } = req.body as { share: boolean };
+    const { userId } = req;
+
+    try {
+      if (!share) {
+        await LinkModel.deleteOne({ userId });
+        res.status(200).json({ ok: true, message: "Share link deleted" });
         return;
       }
 
-      if (linkRes) {
-        const user = await UserModel.findOne({ _id: linkRes.userId });
-
-        if (!user) {
-          res.status(404).json({ message: 'User not found.' });
-          return;
-        }
-
-        const userContents = await ContentModel.find({
-          userId: user._id,
-        });
-
-        if (userContents) {
-          res.status(200).json({
-            user: { _id: user._id, userName: user.userName },
-            content: userContents,
-          });
-        } else {
-          res.status(204).json({ message: 'No Contents found' });
-        }
+      const existing = await LinkModel.findOne({ userId });
+      if (existing) {
+        res.status(200).json({ ok: true, sharableLink: existing.hashLink });
+        return;
       }
-    } catch (error) {
-      res.json({
-        error,
-        message: 'Something went wrong, try again.',
-      });
+
+      const createLink = randomString(10);
+      await LinkModel.create({ hashLink: createLink, userId });
+      res.status(200).json({ ok: true, sharableLink: createLink });
+      return;
+    } catch {
+      res
+        .status(500)
+        .json({ ok: false, message: "Failed to manage share link" });
+      return;
     }
+  }
+);
+
+// ✅ PUBLIC SHARED BRAIN VIEW
+app.get("/api/v1/brain/:shareLink", async (req: Request, res: Response) => {
+  const { shareLink } = req.params;
+
+  try {
+    const linkRes = await LinkModel.findOne({ hashLink: shareLink });
+    if (!linkRes) {
+      res.status(400).json({ ok: false, message: "Invalid share link" });
+      return;
+    }
+
+    const user = await UserModel.findById(linkRes.userId);
+    if (!user) {
+      res.status(404).json({ ok: false, message: "User not found" });
+      return;
+    }
+
+    const contents = await ContentModel.find({ userId: user._id });
+    res.status(200).json({
+      ok: true,
+      message: "Shared content fetched",
+      data: {
+        user: { _id: user._id, userName: user.userName },
+        content: contents,
+      },
+    });
+    return;
+  } catch {
+    res
+      .status(500)
+      .json({ ok: false, message: "Failed to fetch shared brain" });
+    return;
   }
 });
 
-async function main() {
-  await mongoose.connect(
-    'mongodb+srv://prince_dev24:6xX3ACUnfeVGNzVe@cluster0.dkljnpt.mongodb.net/second-brain'
-  );
-  app.listen(4000);
-  console.log('connected');
+// ✅ START SERVER
+async function main(): Promise<void> {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI as string);
+    console.log("✅ MongoDB connected");
+
+    const PORT = process.env.PORT || 4000;
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    return;
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "MongoDB connection failed.";
+    console.error("❌", message);
+    process.exit(1);
+    return;
+  }
 }
+
 main();

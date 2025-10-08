@@ -3,31 +3,39 @@ import { ContentType } from './constants';
 import { Dispatch, SetStateAction } from 'react';
 
 export interface GenericResponse {
-  message: string;
   ok: boolean;
-  error?: Error | AxiosError | unknown | undefined;
-}
-
-export interface AuthContextType {
-  isTokenValid: boolean | null;
-  loginValidation: (token: LoginOkRes) => Promise<void> | Promise<GenericResponse>;
-  logout: () => void;
-}
-
-export interface LoginOkRes {
   message: string;
+  error?: Error | AxiosError | unknown;
+}
+
+/**
+ * 🔐 Auth success response
+ * (used for both signin and signup)
+ */
+// 🔹 Auth success response
+export interface LoginOkRes extends GenericResponse {
   accessToken: string;
   refreshToken: string;
   userName: string;
-  ok: boolean;
 }
 
+/**
+ * 🧩 Auth Context shape
+ */
+export interface AuthContextType {
+  isTokenValid: boolean | null;
+  loginValidation: (res: LoginOkRes) => GenericResponse;
+  logout: () => GenericResponse;
+}
+
+/**
+ * 💾 Token config stored in localStorage
+ */
 export interface TokenConfig {
   accessToken: string;
   refreshToken: string;
   isValidated: boolean;
 }
-
 export interface AddContentProps {
   title: string;
   link: string;

@@ -1,26 +1,47 @@
-import { axiosApiInstance as axios } from '../api-interceptors';
+// src/services/api/auth.api.ts
+import { apiPost } from '../apiClient';
+import { LoginOkRes, GenericResponse } from '../../interfaces/generic';
+import { ReadTokenConfig } from '../storage';
 
-interface SignInProps {
+interface AuthCredentials {
   userName: string;
   password: string;
 }
 
-// SignUp
-export const signup = async (userCredentials: SignInProps) => {
-  const response = await axios.post('/signup', userCredentials);
-  return response.data;
-};
+/**
+ * 🧾 Sign Up
+ */
+export const signup = (userCredentials: AuthCredentials): Promise<LoginOkRes> =>
+  apiPost<LoginOkRes>('/signup', userCredentials);
 
-// login
-export const signin = async (userCredentials: SignInProps) => {
-  const response = await axios.post('/signin', userCredentials);
-  return response.data;
-};
+/**
+ * 🔐 Sign In
+ */
+export const signin = (userCredentials: AuthCredentials): Promise<LoginOkRes> =>
+  apiPost<LoginOkRes>('/signin', userCredentials);
 
-// refresh
-export const refresh = async (currRefreshToken: string) => {
-  const response = await axios.post<{ accessToken: string, refreshToken: string }>('/refresh', {
-    refreshToken : currRefreshToken,
-  });
-  return response.data;
+/**
+ * ♻️ Refresh Token
+ */
+export const refresh = (
+  refreshToken: string,
+): Promise<{ ok: boolean; message: string; accessToken: string; refreshToken: string }> =>
+  apiPost('/refresh', { refreshToken });
+
+/**
+ * 🚪 Logout
+ * Pass refreshToken from localStorage
+ */
+export const logout = async (): Promise<GenericResponse> => {
+  const tokenData = ReadTokenConfig();
+  const refreshToken = tokenData?.refreshToken;
+
+  if (!refreshToken) {
+    return {
+      ok: false,
+      message: 'No refresh token found in storage.',
+    };
+  }
+
+  return apiPost<GenericResponse>('/logout', { refreshToken });
 };

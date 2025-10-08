@@ -1,12 +1,13 @@
-import { HTMLInputTypeAttribute, RefObject } from 'react';
+import { HTMLInputTypeAttribute, RefObject } from "react";
 
 interface InputFieldProps {
   labelName: string;
   type: HTMLInputTypeAttribute;
   nameAttr: string;
   placeholder: string;
-  required ?: boolean;
+  required?: boolean;
   ref: RefObject<HTMLInputElement | null>;
+  onInput?: () => void; // 👈 Added
 }
 
 export default function InputField({
@@ -16,6 +17,7 @@ export default function InputField({
   placeholder,
   required,
   ref,
+  onInput,
 }: InputFieldProps) {
   return (
     <div>
@@ -26,10 +28,8 @@ export default function InputField({
         className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none"
         placeholder={placeholder}
         ref={ref}
-        onChange={(e) => {
-          return ref.current ? (ref.current.value = e.target.value) : null;
-        }}
         required={required}
+        onInput={onInput}
       />
     </div>
   );

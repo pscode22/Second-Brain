@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { JWT_ACCESS_SECRET } from './config';
+
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET as string
 
 export function userMiddleware(
   req: Request,

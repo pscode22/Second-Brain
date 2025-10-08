@@ -2,7 +2,7 @@ import mongoose, { model, Schema } from 'mongoose';
 
 const userSchema = new Schema({
   userName: { type: String, unique: true, required: true },
-  password: String,
+  password: { type: String, required: true },
 });
 
 const contentSchema = new Schema({
@@ -22,13 +22,17 @@ const linkSchema = new Schema({
   },
 });
 
+
 const refreshTokenSchema = new Schema({
-  token: { type: String, required: true, unique: true },
-  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  createdAt: { type: Number, required: true }, // timestamp ms
-  lastUsedAt: { type: Number, required: true }, // timestamp ms
+  userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  token: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date },
   expiresAt: { type: Date, required: true },
 });
+
+// 🧹 Mongo will automatically delete expired refresh tokens
+refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Configure toJSON so that __v never appears in JSON output
 userSchema.set('toJSON', {

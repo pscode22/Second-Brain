@@ -1,33 +1,51 @@
-import { ContentType } from './../../interfaces/constants';
+// src/services/api/content.api.ts
+import { apiPost, apiDelete } from '../apiClient';
+import { publicGet } from '../publicApiClient';
+import { ContentType } from '../../interfaces/constants';
 import { AddContentProps } from '../../interfaces/generic';
-import { axiosApiInstance as axios } from '../api-interceptors';
-import axioss from 'axios';
-import { BASE_URL } from '../config';
 
-const axiosInstance = axioss.create({
-  baseURL: BASE_URL,
-  headers: {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-  },
-});
+/**
+ * 🧠 Add new content
+ */
+export const AddContent = (
+  contentProps: AddContentProps,
+): Promise<{ ok: boolean; message: string }> => apiPost('/api/v1/content', contentProps);
 
-export const AddContent = async (contentProps: AddContentProps) => {
-  const response = await axios.post('/content', contentProps);
-  return response.data;
-};
+/**
+ * 📂 Get contents by type (or all)
+ */
+export const GetContent = ({
+  contentType,
+}: {
+  contentType: ContentType;
+}): Promise<{
+  ok: boolean;
+  message: string;
+  data: unknown[];
+}> => apiPost('get/content', { contentType });
 
-export const GetContent = async ({ contentType }: { contentType: ContentType }) => {
-  const response = await axios.post('/get/content', { contentType });
-  return response.data;
-};
+/**
+ * 🗑️ Delete content by ID
+ */
+export const DeleteContent = ({
+  contentId,
+}: {
+  contentId: string;
+}): Promise<{ ok: boolean; message: string }> => apiDelete(`/content`, { contentId });
 
-export const DeleteContent = async ({ contentId }: { contentId: string }) => {
-  const response = await axios.delete('/content', { data: { contentId } });
-  return response.data;
-};
-
-export const GetAllContentsByShareLink = async ({ shareLink }: { shareLink: string }) => {
-  const response = await axiosInstance.get(`/brain/${shareLink}`);
-  return response.data;
-};
+/**
+ * 🔗 Get shared brain content by share link
+ * (public endpoint — doesn’t need auth)
+ */
+export const GetAllContentsByShareLink = ({
+  shareLink,
+}: {
+  shareLink: string;
+}): Promise<{
+  ok: boolean;
+  message: string;
+  data: {
+    user: { _id: string; userName: string };
+    content: unknown[];
+  };
+}> => publicGet(`/brain/${shareLink}`);

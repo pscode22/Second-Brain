@@ -1,6 +1,18 @@
 @import 'tailwindcss';
 
 @theme {
+  --font-sans: 'Inter', sans-serif;
+  --color-background: #ffffff;
+  --color-foreground: #1a1a1a;
+  --color-primary: #7e22ce; /* your purple accent */
+  --color-muted-foreground: #6b7280; /* gray tone */
+}
+
+body {
+  @apply bg-[var(--color-background)] font-sans text-[var(--color-foreground)] antialiased;
+}
+
+@theme {
   /* Slate */
   --color-slate-100: #f8fafb;
 

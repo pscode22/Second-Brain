@@ -2,14 +2,14 @@
 import { apiPost, apiDelete } from '../apiClient';
 import { publicGet } from '../publicApiClient';
 import { ContentType } from '../../interfaces/constants';
-import { AddContentProps } from '../../interfaces/generic';
+import { AddContentProps, Content } from '../../interfaces/generic';
 
 /**
  * 🧠 Add new content
  */
 export const AddContent = (
   contentProps: AddContentProps,
-): Promise<{ ok: boolean; message: string }> => apiPost('/api/v1/content', contentProps);
+): Promise<{ ok: boolean; message: string }> => apiPost('/content', contentProps);
 
 /**
  * 📂 Get contents by type (or all)
@@ -21,7 +21,7 @@ export const GetContent = ({
 }): Promise<{
   ok: boolean;
   message: string;
-  data: unknown[];
+  data: Content[];
 }> => apiPost('get/content', { contentType });
 
 /**
@@ -46,6 +46,6 @@ export const GetAllContentsByShareLink = ({
   message: string;
   data: {
     user: { _id: string; userName: string };
-    content: unknown[];
+    content: Content[];
   };
 }> => publicGet(`/brain/${shareLink}`);

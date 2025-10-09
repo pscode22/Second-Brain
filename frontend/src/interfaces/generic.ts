@@ -75,7 +75,9 @@ export interface ShareContContext {
   setShareContent: Dispatch<SetStateAction<ShareContentProps>>;
 }
 
-export interface SharedLinkRes {
-  content: Content[];
-  user: { _id: string; userName: string };
+export interface SharedLinkRes extends GenericResponse {
+  data: {
+    content: Content[];
+    user: { _id: string; userName: string };
+  };
 }

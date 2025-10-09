@@ -4,16 +4,16 @@ import { useAuth } from "../hooks/useAuth";
 import Loader from "../components/ui/Loader";
 
 // Lazy-loaded routes
-const RouteSignIn = lazy(() => import("../routes/signin"));
-const RouteSignUp = lazy(() => import("../routes/signup"));
-const RouteDashboard = lazy(() => import("../routes/dashboard"));
-const RouteProfile = lazy(() => import("../routes/profile"));
-const RoutePageNotFound = lazy(() => import("../routes/notfound"));
-const RouteTwitter = lazy(() => import("../routes/twitter"));
-const RouteYoutube = lazy(() => import("../routes/youtube"));
-const RouteLayout = lazy(() => import("../routes/layout"));
-const RouteShare = lazy(() => import("../routes/share"));
-const RouteIntro = lazy(() => import("../routes/intro"));
+const RouteSignIn = lazy(() => import("./Signin"));
+const RouteSignUp = lazy(() => import("./Signup"));
+const RouteDashboard = lazy(() => import("./Dashboard"));
+const RouteProfile = lazy(() => import("./Profile"));
+const RoutePageNotFound = lazy(() => import("./Notfound"));
+const RouteTwitter = lazy(() => import("./Twitter"));
+const RouteYoutube = lazy(() => import("./Youtube"));
+const RouteLayout = lazy(() => import("./Layout"));
+const RouteShare = lazy(() => import("./Share"));
+const RouteIntro = lazy(() => import("./Intro"));
 
 /**
  * 🧠 Auth guard for protected routes

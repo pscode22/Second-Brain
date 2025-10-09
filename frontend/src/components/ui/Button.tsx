@@ -8,6 +8,7 @@ interface ButtonProps {
   endIcon?: ReactElement;
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
   className?: string;
+  disabled?: boolean;
 }
 
 const defaultClasses =
@@ -19,12 +20,13 @@ const variantClasses = {
 };
 
 export function Button(props: ButtonProps) {
-  const { variant, text, startIcon, endIcon, onClick, className } = props;
+  const { variant, text, startIcon, endIcon, onClick, className, disabled = false } = props;
 
   return (
     <button
       className={cn(`${defaultClasses} ${variantClasses[variant]} ${className}`)}
       onClick={onClick}
+      disabled={disabled}
     >
       {startIcon}
       {text}

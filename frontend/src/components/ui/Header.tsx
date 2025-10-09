@@ -32,7 +32,7 @@ export default function Header({ setModalOpen }: HeaderProps) {
       if (link && link.sharableLink) {
         setShareContent({
           isModalOpen: true,
-          shareableLink: `http://localhost:5173/share/${link.sharableLink}`,
+          shareableLink: `${import.meta.env.VITE_BASE_URL}/share/${link.sharableLink}`,
         });
         toast.success("Share link generated successfully!");
       } else {

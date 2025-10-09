@@ -52,6 +52,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     (async () => {
       await apiLogout(); // revoke token on backend
       ClearAllConfigs(); // cleanup FE storage
+      localStorage.removeItem('activeSidebarItem');
       setIsTokenValid(false);
       window.location.href = "/signin";
     })();

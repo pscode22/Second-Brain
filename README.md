@@ -1,7 +1,7 @@
 🧠 Second Brain
 
 - Organize and share your notes.
-- Second Brain is a lightweight note system helps you keep notes organized and makes sharing simple when collaboration is needed.
+- Lightweight note system helps you keep notes organized and share it with others.
 
 What it does?
 - A dashboard that save and organize youtube and twitter in one place.
@@ -12,4 +12,5 @@ Tech stack
 - Backend: Node.js + MongoDB
 - Database: MongoDB
 - API: REST
+
 

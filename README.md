@@ -8,7 +8,8 @@ What it does?
 - Share notes with others.
 
 Tech stack
-Frontend: React + Vite + Tailwind CSS
-Backend: Node.js + MongoDB
-Database: MongoDB
-API: REST
+- Frontend: React + Vite + Tailwind CSS
+- Backend: Node.js + MongoDB
+- Database: MongoDB
+- API: REST
+
